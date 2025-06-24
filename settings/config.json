@@ -1,0 +1,24 @@
+{
+    "OpenGL": {
+        "sprite.shader": "SpriteShader",
+        "sprite.shader.vertex": "res/shaders/vSprite.cfg",
+        "sprite.shader.fragment": "res/shaders/fSprite.cfg",
+        "font.height": 40,
+        "font.width": 28,
+        "window.width": 1280,
+        "window.height": 720,
+        "window.title": "Geometry Dash",
+        "fullscreen": false
+    },
+
+    "Player": {
+        "spawn.x": 0, "spawn.y": 40,
+        "noclip": false
+    },
+
+    "Camera": {
+        "locked": true,
+        "mag.speed": 0.01,
+        "speed": 10
+    }
+}
