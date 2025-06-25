@@ -111,9 +111,9 @@ public:
         this->move_all(x - origin.x, y - origin.y);
     };
 
-    void rotate_all(float cam_rot) {
+    void rotate_all(float rotation) {
         for (int i = 0; i < this->sprites.size(); i++) {
-            this->sprites[i]->setRotation(cam_rot);
+            this->sprites[i]->setRotation(rotation);
         }
     };
 

@@ -4,3 +4,4 @@
 build/
 res/textures/Thumbs.db
 release.md
+build_current.ps1

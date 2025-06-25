@@ -14,6 +14,9 @@ struct Player {
     int spawn_x = 0; // Player X
     int spawn_y = 0; // Player Y
     int speed = 5;
+    int jump_speed = 5;
+    int jump_height = 160;
+    float rotation = 0.f;
     std::string current_anim = ""; // Player current animation
     Cursor cur = Cursor(); // Player cursor position
     bool noclip = false; // Player no clipping flag

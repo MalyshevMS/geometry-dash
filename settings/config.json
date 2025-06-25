@@ -12,7 +12,7 @@
     },
 
     "Player": {
-        "spawn.x": 0, "spawn.y": 40,
+        "spawn.x": 0, "spawn.y": 0,
         "noclip": false
     },
 

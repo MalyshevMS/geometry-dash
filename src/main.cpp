@@ -79,11 +79,11 @@ bool sg_collision(SprGroup& sg1, SprGroup& sg2) {
 }
 
 void jump() {
-    int buff = pl.y;
-    while (pl.y < buff + 2 * gl.sprite_size) {
-        pl.y += pl.speed;
+    int end_point = pl.y + pl.jump_height;
+    while (pl.y < end_point) {
+        pl.y += pl.jump_speed * (abs(pl.y - (end_point + 31)) / float(pl.jump_height)); // не спрашивай почему тут 31, оно работает, так что не трогай
+        pl.rotation += -90.f / 72.f; // не спрашивай почему тут 72.f, оно работает, так что не трогай
         sleep(1);
-        
     }
 }
 
@@ -92,12 +92,17 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
     if (key == KEY_UP && action == GLFW_PRESS) {
        thread t(jump);
         t.detach();
-        cout << "ATAKA" << endl; 
+        cout << "JUMP" << endl;
     }
-    if( key == KEY_R && action == GLFW_PRESS){
-        pl.x = pl.spawn_x;
+
+    if (key == KEY_R && action == GLFW_PRESS) {
         pl.y = pl.spawn_y;
-        cout  << "RESET" << endl;
+        cout << "RESET" << endl;
+    }
+
+    if (key == KEY_ESCAPE && action == GLFW_PRESS) {
+        cout << "EXIT" << endl;
+        glfwSetWindowShouldClose(win, GLFW_TRUE);
     }
 }
 
@@ -105,7 +110,7 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
 /// @param win GLFW window pointer
 void keyHandler(GLFWwindow* win) {
     if(glfwGetKey(win, KEY_ENTER) == GLFW_PRESS){
-        cout << "X: " << pl.x << " Y: "<< pl.y<< endl;
+        cout << "X: " << pl.x << " Y: " << pl.y << " ROTATION: " << pl.rotation << endl;
     }
 }
 
@@ -239,7 +244,7 @@ int main(int argc, char const *argv[]) {
 
         sg_player.add_sprite("Player", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, pl.x, pl.y);
         for(int i = 0; i < 18; i++) {
-            sg_sprites.add_sprite("Ground", "", gl.sprite_shader, 3 * gl.sprite_size, 3 * gl.sprite_size, 0.f, i * gl.sprite_size * 3 - 6 * gl.sprite_size, -200);
+            sg_sprites.add_sprite("Ground", "", gl.sprite_shader, 3 * gl.sprite_size, 3 * gl.sprite_size, 0.f, i * gl.sprite_size * 3 - 6 * gl.sprite_size, -240);
         }
 
         while (!glfwWindowShouldClose(window)) { // Main game loop
@@ -263,6 +268,7 @@ int main(int argc, char const *argv[]) {
 
             pl.update();
             sg_player.set_pos(pl.x, pl.y);
+            sg_player.rotate_all(pl.rotation);
             cam.x = pl.x - gl.win_size.x / 2 + 240;
 
             if (pl.x % (27 * gl.sprite_size) == 0 && pl.x != 0) {
