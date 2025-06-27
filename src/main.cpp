@@ -47,6 +47,7 @@ TexLoader tl_main; // Main Texture loader
 SprGroup sg_sprites; // Group for obstacles, walls, etc.
 SprGroup sg_buttons; // Group for buttons
 SprGroup sg_player; // Group for Player 1
+SprGroup sg_trail;
 
 Parser pars_main; // Main parser
 
@@ -64,26 +65,49 @@ void sizeHandler(GLFWwindow* win, int width, int height) {
     gl.win_size.y = height;
     glViewport(0, 0, gl.win_size.x, gl.win_size.y);
 }
-
+//huy
 /// @brief Function for checking collisions beetween 2 sprite groups
 /// @param sg1 First sprite group
 /// @param sg2 Second sprite group
 /// @return Is these groups colliding
-bool sg_collision(SprGroup& sg1, SprGroup& sg2) {
-    for (auto i : sg1.get_sprites()) {
-        for (auto j : sg2.get_sprites()) {
-            if (abs(i->getPos().x - j->getPos().x) <= gl.sprite_size && abs(i->getPos().y - j->getPos().y) <= gl.sprite_size) return true;
-        }
+// bool sg_collision(SprGroup& sg1, SprGroup& sg2) {
+//     for (auto i : sg1.get_sprites()) {
+//         for (auto j : sg2.get_sprites()) {
+//             if (abs(i->getPos().x - j->getPos().x) <= gl.sprite_size && abs(i->getPos().y - j->getPos().y) <= gl.sprite_size) return true;
+//         }
+//     }
+//     return false;
+// }
+
+void fall() {
+    if (pl.y > 0 && !cl.is_jumping) {
+        cl.is_falling = true;
+        pl.y -= pl.jump_speed * (abs(pl.y - (0 - 31)) / float(pl.jump_height)); // не спрашивай почему тут 31, оно работает, так что не трогай
+        pl.rotation += -90.f / 32.f; // не спрашивай почему тут 32.f, оно работает, так что не трогай
+    } else {// доделать эту парашу
+        cl.is_falling = false;
     }
-    return false;
 }
 
 void jump() {
+    if (cl.is_jumping && cl.is_falling) return;
     int end_point = pl.y + pl.jump_height;
     while (pl.y < end_point) {
+        cl.is_jumping = true;
         pl.y += pl.jump_speed * (abs(pl.y - (end_point + 31)) / float(pl.jump_height)); // не спрашивай почему тут 31, оно работает, так что не трогай
-        pl.rotation += -90.f / 72.f; // не спрашивай почему тут 72.f, оно работает, так что не трогай
+        pl.rotation += -90.f / 32.f; // не спрашивай почему тут 32.f, оно работает, так что не трогай
         sleep(1);
+    }
+    cl.is_jumping = false;
+}
+
+void trail() {
+    if (pl.x % 2 == 0) {
+        sg_trail.add_sprite("Trail", "", gl.sprite_shader, 8, 8, pl.rotation, pl.x + 40, pl.y + 40);
+    }
+
+    if (sg_trail.get_sprites().size() >= 120 ) {
+        sg_trail.delete_all();
     }
 }
 
@@ -92,16 +116,17 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
     if (key == KEY_UP && action == GLFW_PRESS) {
        thread t(jump);
         t.detach();
-        cout << "JUMP" << endl;
+        cout << "ATAKA" << endl;
     }
 
     if (key == KEY_R && action == GLFW_PRESS) {
         pl.y = pl.spawn_y;
-        cout << "RESET" << endl;
+        pl.rotation = 0.f;
+        cout << "SYCILIYAN" << endl;
     }
 
     if (key == KEY_ESCAPE && action == GLFW_PRESS) {
-        cout << "EXIT" << endl;
+        cout << "ESPANDER" << endl;
         glfwSetWindowShouldClose(win, GLFW_TRUE);
     }
 }
@@ -210,6 +235,7 @@ int main(int argc, char const *argv[]) {
         sg_sprites = SprGroup(&rm_main);
         sg_player = SprGroup(&rm_main);
         sg_buttons = SprGroup(&rm_main);
+        sg_trail = SprGroup(&rm_main);
         pars_main = Parser(&rm_main, &tl_main, &sg_sprites, &gl);
         kh_main = KeyHandler(window);
 
@@ -237,6 +263,7 @@ int main(int argc, char const *argv[]) {
         tl_main.add_texture("Player", "res/textures/player.png");
         tl_main.add_texture("Ground", "res/textures/ground.png");
         tl_main.add_texture("Block", "res/textures/block.png");
+        tl_main.add_texture("Trail", "res/textures/trail.png");
 
         sg_player.set_timer();
 
@@ -265,6 +292,9 @@ int main(int argc, char const *argv[]) {
             spriteShaderProgram->setMat4("projMat", projMat);
 
             tl_main.bind_all(); // Binding all textures
+            
+            trail();
+            fall();
 
             pl.update();
             sg_player.set_pos(pl.x, pl.y);
@@ -281,6 +311,7 @@ int main(int argc, char const *argv[]) {
             sg_player.render_all();
             sg_sprites.render_all();
             sg_buttons.render_all();
+            sg_trail.render_all();
             
             double cx, cy;
             glfwGetCursorPos(window, &cx, &cy);
@@ -294,6 +325,7 @@ int main(int argc, char const *argv[]) {
         
         // Deleting all sprites from all groups
         sg_sprites.delete_all();
+        sg_trail.delete_all();
     }
 
 

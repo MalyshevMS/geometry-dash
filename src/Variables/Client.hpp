@@ -3,5 +3,7 @@
 #include <string>
 
 struct Client {
-    bool in_game;  
+    bool in_game;
+    bool is_jumping;
+    bool is_falling;
 };
