@@ -1,5 +1,4 @@
 // #define debug
-#define online
 
 #include <glad/glad.h> // OpenGL libs
 #include <GLFW/glfw3.h>
@@ -55,6 +54,8 @@ KeyHandler kh_main; // Main Key Handler
 
 float __ticks;
 float __ticks2;
+float __buff_rot;
+glm::vec2 __buff_fall;
 
 /// @brief Function for resizing window
 /// @param win GLFW window poiner
@@ -79,18 +80,48 @@ void sizeHandler(GLFWwindow* win, int width, int height) {
 //     return false;
 // }
 
+auto parabola_fall = [](int x){
+    return (1.f / 256.f) * x * x;
+};
+
+auto find_nearest = [](int x, int y){
+    int remainder = x % y;
+    if (remainder >= y / 2) {
+        return x + (y - remainder);
+    } else {
+        return x - remainder;
+    }
+}; 
+
+void fix_rotation() {
+    pl.rotation = find_nearest(pl.rotation, 90);
+    cl.is_fixed_rot = true;
+}
+
+void fix_clipping() {
+    if (pl.y < 0) {
+        pl.y++;
+    }
+}
+
 void fall() {
     if (pl.y > 0 && !cl.is_jumping) {
         cl.is_falling = true;
-        pl.y -= pl.jump_speed * (abs(pl.y - (0 - 31)) / float(pl.jump_height)); // не спрашивай почему тут 31, оно работает, так что не трогай
+        pl.y = -parabola_fall(pl.x - __buff_fall.x) + __buff_fall.y; // не спрашивай почему тут 31, оно работает, так что не трогай
         pl.rotation += -90.f / 32.f; // не спрашивай почему тут 32.f, оно работает, так что не трогай
-    } else {// доделать эту парашу
+        cl.is_fixed_rot = false;
+    } else {
         cl.is_falling = false;
+        __buff_fall.x = pl.x;
+        __buff_fall.y = pl.y;
+        if (!cl.is_fixed_rot) {
+            fix_rotation();
+        }
     }
 }
 
 void jump() {
-    if (cl.is_jumping && cl.is_falling) return;
+    if (cl.is_jumping || cl.is_falling) return;
     int end_point = pl.y + pl.jump_height;
     while (pl.y < end_point) {
         cl.is_jumping = true;
@@ -113,20 +144,16 @@ void trail() {
 
 /// @brief Proceeds once key pressings (if key was hold down for a long it's still will be recognize as once pressing)
 void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode) { 
-    if (key == KEY_UP && action == GLFW_PRESS) {
-       thread t(jump);
-        t.detach();
-        cout << "ATAKA" << endl;
+    if (key == KEY_F && action == GLFW_PRESS) {
+       cout << find_nearest(pl.rotation, 90) << endl;
     }
 
     if (key == KEY_R && action == GLFW_PRESS) {
         pl.y = pl.spawn_y;
         pl.rotation = 0.f;
-        cout << "SYCILIYAN" << endl;
     }
 
     if (key == KEY_ESCAPE && action == GLFW_PRESS) {
-        cout << "ESPANDER" << endl;
         glfwSetWindowShouldClose(win, GLFW_TRUE);
     }
 }
@@ -136,6 +163,11 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
 void keyHandler(GLFWwindow* win) {
     if(glfwGetKey(win, KEY_ENTER) == GLFW_PRESS){
         cout << "X: " << pl.x << " Y: " << pl.y << " ROTATION: " << pl.rotation << endl;
+    }
+
+    if (glfwGetKey(win, KEY_UP) == GLFW_PRESS || glfwGetKey(win, KEY_SPACE) == GLFW_PRESS || glfwGetMouseButton(win, MOUSE_LEFT) == GLFW_PRESS) {
+        thread t(jump);
+        t.detach();
     }
 }
 
@@ -177,19 +209,6 @@ int main(int argc, char const *argv[]) {
     pl.spawn_y = _pl["spawn.y"];
     pl.current_anim = "";
     pl.noclip = _pl["noclip"];
-
-    string com;
-
-    #ifdef debug // Debugger console
-        do {
-            cout << "Parcour-game: ";
-            getline(cin, com);
-
-            if (com == "$exit") return 0;
-
-            cmd.action(com, &pl);
-        } while (com != "$play");
-    #endif
 
     if (!glfwInit()) { // Check for GLFW
         cerr << "glfwInit failed!" << endl;
@@ -293,8 +312,11 @@ int main(int argc, char const *argv[]) {
 
             tl_main.bind_all(); // Binding all textures
             
-            trail();
             fall();
+            fix_clipping();
+            #ifdef debug
+                trail();
+            #endif
 
             pl.update();
             sg_player.set_pos(pl.x, pl.y);
