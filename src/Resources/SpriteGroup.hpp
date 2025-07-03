@@ -72,6 +72,18 @@ public:
         }
     };
 
+    void hide_all() {
+        for (int i = 0; i < sprites.size(); i++) {
+            hide(i);
+        }
+    }
+
+    void show_all() {
+        for (int i = 0; i < sprites.size(); i++) {
+            show(i);
+        }
+    }
+
     void hide(int spr_num) {
         sprites[spr_num]->_render = false;
     };

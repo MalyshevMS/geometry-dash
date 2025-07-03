@@ -1,4 +1,5 @@
 // #define debug
+#define hitbox
 
 #include <glad/glad.h> // OpenGL libs
 #include <GLFW/glfw3.h>
@@ -43,9 +44,12 @@ ResourceManager rm_main; // Main Resource manager
 
 TexLoader tl_main; // Main Texture loader
 
-SprGroup sg_sprites; // Group for obstacles, walls, etc.
+SprGroup sg_ground; // Group for ground
+SprGroup sg_spikes; // Group for spikes
+SprGroup sg_spikes_hbox; // Group for spikes hitbox
 SprGroup sg_buttons; // Group for buttons
 SprGroup sg_player; // Group for Player 1
+SprGroup sg_player_hbox; // Group for Player hitbox
 SprGroup sg_trail;
 
 Parser pars_main; // Main parser
@@ -66,7 +70,7 @@ void sizeHandler(GLFWwindow* win, int width, int height) {
     gl.win_size.y = height;
     glViewport(0, 0, gl.win_size.x, gl.win_size.y);
 }
-//huy
+
 /// @brief Function for checking collisions beetween 2 sprite groups
 /// @param sg1 First sprite group
 /// @param sg2 Second sprite group
@@ -104,6 +108,42 @@ void fix_clipping() {
     }
 }
 
+void spawn_ground() {
+    for(int i = 0; i < 18; i++) {
+        sg_ground.add_sprite("Ground", "", gl.sprite_shader, 3 * gl.sprite_size, 3 * gl.sprite_size, 0.f, i * gl.sprite_size * 3 - 6 * gl.sprite_size, -240);
+    }
+}
+
+void reset() {
+    pl.x = pl.spawn_x;
+    pl.y = pl.spawn_y;
+    pl.rotation = 0.f;
+    sg_ground.delete_all();
+    spawn_ground();
+}
+
+bool spikes_collide() {
+    for (auto i : sg_spikes_hbox.get_sprites()) {
+        auto s_pos = i->getPos();
+        auto p_pos = glm::vec2(pl.x, pl.y);
+        auto s_size = cl.hbox_size;
+        auto p_size = glm::vec2(gl.sprite_size);
+        
+
+        auto s_rt = s_pos + s_size;
+        auto p_rt = p_pos + p_size;
+
+        if (p_rt.x >= s_pos.x && p_rt.y >= s_pos.y && \
+            p_pos.x <= s_rt.x && p_pos.y <= s_rt.y) return true;
+    }
+    return false;
+}
+
+void create_spike(int x, int y) {
+    sg_spikes.add_sprite("Spike", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, x, y);
+    sg_spikes_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, cl.hbox_size.x, cl.hbox_size.y, 0.f, x + cl.hbox_size.x / 2, y);
+}
+
 void fall() {
     if (pl.y > 0 && !cl.is_jumping) {
         cl.is_falling = true;
@@ -121,7 +161,6 @@ void fall() {
 }
 
 void jump() {
-    if (cl.is_jumping || cl.is_falling) return;
     int end_point = pl.y + pl.jump_height;
     while (pl.y < end_point) {
         cl.is_jumping = true;
@@ -145,12 +184,11 @@ void trail() {
 /// @brief Proceeds once key pressings (if key was hold down for a long it's still will be recognize as once pressing)
 void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode) { 
     if (key == KEY_F && action == GLFW_PRESS) {
-       cout << find_nearest(pl.rotation, 90) << endl;
+       cout << spikes_collide() << endl;
     }
 
     if (key == KEY_R && action == GLFW_PRESS) {
-        pl.y = pl.spawn_y;
-        pl.rotation = 0.f;
+        reset();
     }
 
     if (key == KEY_ESCAPE && action == GLFW_PRESS) {
@@ -166,8 +204,10 @@ void keyHandler(GLFWwindow* win) {
     }
 
     if (glfwGetKey(win, KEY_UP) == GLFW_PRESS || glfwGetKey(win, KEY_SPACE) == GLFW_PRESS || glfwGetMouseButton(win, MOUSE_LEFT) == GLFW_PRESS) {
-        thread t(jump);
-        t.detach();
+        if (!cl.is_jumping && !cl.is_falling) {
+            thread t(jump);
+            t.detach();
+        }
     }
 }
 
@@ -251,11 +291,14 @@ int main(int argc, char const *argv[]) {
     {
         rm_main = ResourceManager(argv[0]); // Binding all classes together
         tl_main = TexLoader(&rm_main);
-        sg_sprites = SprGroup(&rm_main);
+        sg_ground = SprGroup(&rm_main);
         sg_player = SprGroup(&rm_main);
         sg_buttons = SprGroup(&rm_main);
         sg_trail = SprGroup(&rm_main);
-        pars_main = Parser(&rm_main, &tl_main, &sg_sprites, &gl);
+        sg_spikes = SprGroup(&rm_main);
+        sg_spikes_hbox = SprGroup(&rm_main);
+        sg_player_hbox = SprGroup(&rm_main);
+        pars_main = Parser(&rm_main, &tl_main, &sg_ground, &gl);
         kh_main = KeyHandler(window);
 
         // Creating and checking for sprite shader
@@ -283,15 +326,32 @@ int main(int argc, char const *argv[]) {
         tl_main.add_texture("Ground", "res/textures/ground.png");
         tl_main.add_texture("Block", "res/textures/block.png");
         tl_main.add_texture("Trail", "res/textures/trail.png");
+        tl_main.add_texture("Spike", "res/textures/spike.png");
+        tl_main.add_texture("SpikeHitbox", "res/textures/hitbox_spike.png");
 
         sg_player.set_timer();
 
         cam.y = pl.y - gl.win_size.y / 2 + 200;
 
         sg_player.add_sprite("Player", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, pl.x, pl.y);
-        for(int i = 0; i < 18; i++) {
-            sg_sprites.add_sprite("Ground", "", gl.sprite_shader, 3 * gl.sprite_size, 3 * gl.sprite_size, 0.f, i * gl.sprite_size * 3 - 6 * gl.sprite_size, -240);
-        }
+        spawn_ground();
+
+        create_spike(gl.sprite_size * 20, 0);
+        create_spike(gl.sprite_size * 30, gl.sprite_size * 2);
+        create_spike(gl.sprite_size * 40, 0);
+
+        sg_player_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, pl.x, pl.y);
+
+        #ifndef hitbox
+            sg_spikes_hbox.hide_all();
+        #endif
+
+        float projMat_right  = 0.f;
+        float projMat_top    = 0.f;
+        float projMat_left   = 0.f;
+        float projMat_bottom = 0.f;
+        glm::mat4 projMat;
+        double cx, cy;
 
         while (!glfwWindowShouldClose(window)) { // Main game loop
             glClear(GL_COLOR_BUFFER_BIT);
@@ -300,12 +360,12 @@ int main(int argc, char const *argv[]) {
             kh_main.use(cl); // Setting (new) key handler
 
             // Projection matrix variables
-            float projMat_right  = gl.win_size.x * cam.mag + cam.x;
-            float projMat_top    = gl.win_size.y * cam.mag + cam.y;
-            float projMat_left   = - gl.win_size.x * (cam.mag - 1) + cam.x;
-            float projMat_bottom = - gl.win_size.y * (cam.mag - 1) + cam.y;
+            projMat_right  = gl.win_size.x * cam.mag + cam.x;
+            projMat_top    = gl.win_size.y * cam.mag + cam.y;
+            projMat_left   = - gl.win_size.x * (cam.mag - 1) + cam.x;
+            projMat_bottom = - gl.win_size.y * (cam.mag - 1) + cam.y;
 
-            glm::mat4 projMat = glm::ortho(projMat_left, projMat_right, projMat_bottom, projMat_top, -100.f, 100.f); // Setting projection matrix
+            projMat = glm::ortho(projMat_left, projMat_right, projMat_bottom, projMat_top, -100.f, 100.f); // Setting projection matrix
 
             // Using projection matrix
             spriteShaderProgram->setMat4("projMat", projMat);
@@ -314,28 +374,35 @@ int main(int argc, char const *argv[]) {
             
             fall();
             fix_clipping();
+            if (spikes_collide()) {
+                cout << "TYLYP" << endl;
+                reset();
+            }
             #ifdef debug
                 trail();
             #endif
 
             pl.update();
             sg_player.set_pos(pl.x, pl.y);
+            sg_player_hbox.set_pos(pl.x, pl.y);
             sg_player.rotate_all(pl.rotation);
             cam.x = pl.x - gl.win_size.x / 2 + 240;
 
             if (pl.x % (27 * gl.sprite_size) == 0 && pl.x != 0) {
-                sg_sprites.move_all(27 * gl.sprite_size, 0);
+                sg_ground.move_all(27 * gl.sprite_size, 0);
             }
 
             sg_player.update_all();
 
             // Rendering all sprites
             sg_player.render_all();
-            sg_sprites.render_all();
+            sg_player_hbox.render_all();
+            sg_ground.render_all();
             sg_buttons.render_all();
             sg_trail.render_all();
+            sg_spikes.render_all();
+            sg_spikes_hbox.render_all();
             
-            double cx, cy;
             glfwGetCursorPos(window, &cx, &cy);
             pl.cur.x = cx + cam.x;
             pl.cur.y = gl.win_size.y - cy + cam.y;
@@ -346,7 +413,9 @@ int main(int argc, char const *argv[]) {
         }
         
         // Deleting all sprites from all groups
-        sg_sprites.delete_all();
+        sg_spikes.render_all();
+        sg_spikes_hbox.render_all();
+        sg_ground.delete_all();
         sg_trail.delete_all();
     }
 
