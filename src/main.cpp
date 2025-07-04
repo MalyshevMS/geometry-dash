@@ -46,7 +46,9 @@ TexLoader tl_main; // Main Texture loader
 
 SprGroup sg_ground; // Group for ground
 SprGroup sg_spikes; // Group for spikes
+SprGroup sg_blocks; // Group for blocks
 SprGroup sg_spikes_hbox; // Group for spikes hitbox
+SprGroup sg_blocks_hbox; // Group for blocks hitbox
 SprGroup sg_buttons; // Group for buttons
 SprGroup sg_player; // Group for Player 1
 SprGroup sg_player_hbox; // Group for Player hitbox
@@ -139,16 +141,70 @@ bool spikes_collide() {
     return false;
 }
 
+/// @brief Checks if player collides floor
+/// @param epsilon how much units player can go through sprite in Y direction
+/// @param epsilon2 how much units player can be far away from sprite in X direction
+/// @return true, if player collides floor. Else false
+bool collides_floor(int epsilon = 2, int epsilon2 = 0) {
+    if (pl.y <= epsilon) return true;
+    vector sprites_pos = sg_blocks_hbox.get_sprites();
+    for (int i = 0; i < sprites_pos.size(); i++) {
+        if (abs(pl.y - sprites_pos[i]->getPos().y) <= gl.sprite_size - epsilon && pl.y - sprites_pos[i]->getPos().y >= epsilon && abs(pl.x - sprites_pos[i]->getPos().x) < gl.sprite_size - epsilon2) return true;
+    }
+    return false;
+}
+
+/// @brief Checks if player collides ceiling
+/// @param epsilon how much units player can go through sprite in Y direction
+/// @param epsilon2 how much units player can be far away from sprite in X direction
+/// @return true, if player collides ceiling. Else false
+bool collides_ceiling(int epsilon = 2 , int epsilon2 = 0) {
+    vector sprites_pos = sg_blocks_hbox.get_sprites();
+    for (int i = 0; i < sprites_pos.size(); i++) {
+        if ((pl.y + gl.sprite_size) - sprites_pos[i]->getPos().y >= -epsilon && (pl.y + gl.sprite_size) - sprites_pos[i]->getPos().y <= gl.sprite_size && abs(pl.x - sprites_pos[i]->getPos().x) < gl.sprite_size) return true;
+    }
+    return false;
+}
+
+/// @brief Checks if player collides left wall
+/// @param epsilon how much units player can go through sprite in X direction
+/// @param epsilon2 how much units player can be far away from sprite in Y direction
+/// @return true, if player collides left wall. Else false
+bool collides_left(int epsilon = 0, int epsilon2 = 2) {
+    vector sprites_pos = sg_blocks_hbox.get_sprites();
+    for (int i = 0; i < sprites_pos.size(); i++) {
+        if (pl.x - (sprites_pos[i]->getPos().x + gl.sprite_size) <= -epsilon && pl.x - (sprites_pos[i]->getPos().x + gl.sprite_size) > -2 * gl.sprite_size && abs(pl.y - sprites_pos[i]->getPos().y) < gl.sprite_size - epsilon2) return true;
+    }
+    return false;
+}
+
+/// @brief Checks if player collides right wall
+/// @param epsilon how much units player can go through sprite in X direction
+/// @param epsilon2 how much units player can be far away from sprite in Y direction
+/// @return true, if player collides right wall. Else false
+bool collides_right(int epsilon = 0, int epsilon2 = 2) {
+    vector sprites_pos = sg_blocks_hbox.get_sprites();
+    for (int i = 0; i < sprites_pos.size(); i++) {
+        if (abs((pl.x + gl.sprite_size) - sprites_pos[i]->getPos().x) <= -epsilon && abs(pl.y - sprites_pos[i]->getPos().y) < gl.sprite_size - epsilon2) return true;
+    }
+    return false;
+}
+
 void create_spike(int x, int y) {
     sg_spikes.add_sprite("Spike", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, x, y);
     sg_spikes_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, cl.hbox_size.x, cl.hbox_size.y, 0.f, x + cl.hbox_size.x / 2, y);
 }
 
+void create_block(int x, int y) {
+    sg_blocks.add_sprite("Block", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, x, y);
+    sg_blocks_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, x, y);
+}
+
 void fall() {
-    if (pl.y > 0 && !cl.is_jumping) {
+    if (pl.y > 0 && !cl.is_jumping && !collides_floor()) {
         cl.is_falling = true;
         pl.y = -parabola_fall(pl.x - __buff_fall.x) + __buff_fall.y; // не спрашивай почему тут 31, оно работает, так что не трогай
-        pl.rotation += -90.f / 32.f; // не спрашивай почему тут 32.f, оно работает, так что не трогай
+        pl.rotation += -90.f / 40.f; // не спрашивай почему тут 32.f, оно работает, так что не трогай
         cl.is_fixed_rot = false;
     } else {
         cl.is_falling = false;
@@ -296,7 +352,9 @@ int main(int argc, char const *argv[]) {
         sg_buttons = SprGroup(&rm_main);
         sg_trail = SprGroup(&rm_main);
         sg_spikes = SprGroup(&rm_main);
+        sg_blocks = SprGroup(&rm_main);
         sg_spikes_hbox = SprGroup(&rm_main);
+        sg_blocks_hbox = SprGroup(&rm_main);
         sg_player_hbox = SprGroup(&rm_main);
         pars_main = Parser(&rm_main, &tl_main, &sg_ground, &gl);
         kh_main = KeyHandler(window);
@@ -328,6 +386,7 @@ int main(int argc, char const *argv[]) {
         tl_main.add_texture("Trail", "res/textures/trail.png");
         tl_main.add_texture("Spike", "res/textures/spike.png");
         tl_main.add_texture("SpikeHitbox", "res/textures/hitbox_spike.png");
+        tl_main.add_texture("BlockHitbox", "res/textures/hitbox_block.png");
 
         sg_player.set_timer();
 
@@ -337,8 +396,13 @@ int main(int argc, char const *argv[]) {
         spawn_ground();
 
         create_spike(gl.sprite_size * 20, 0);
-        create_spike(gl.sprite_size * 30, gl.sprite_size * 2);
         create_spike(gl.sprite_size * 40, 0);
+
+        create_block(gl.sprite_size * 30, gl.sprite_size);
+        create_block(gl.sprite_size * 31, gl.sprite_size);
+        create_block(gl.sprite_size * 32, gl.sprite_size);
+        create_block(gl.sprite_size * 32, gl.sprite_size * 2);
+        create_block(gl.sprite_size * 32, gl.sprite_size * 3);
 
         sg_player_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, pl.x, pl.y);
 
@@ -401,7 +465,9 @@ int main(int argc, char const *argv[]) {
             sg_buttons.render_all();
             sg_trail.render_all();
             sg_spikes.render_all();
+            sg_blocks.render_all();
             sg_spikes_hbox.render_all();
+            sg_blocks_hbox.render_all();
             
             glfwGetCursorPos(window, &cx, &cy);
             pl.cur.x = cx + cam.x;
@@ -415,6 +481,8 @@ int main(int argc, char const *argv[]) {
         // Deleting all sprites from all groups
         sg_spikes.render_all();
         sg_spikes_hbox.render_all();
+        sg_blocks.render_all();
+        sg_blocks_hbox.render_all();
         sg_ground.delete_all();
         sg_trail.delete_all();
     }
