@@ -24,6 +24,7 @@
 #include "Variables/Cursor.hpp"
 
 #include "keys"
+#include "defines"
 
 #include <iostream> // other libs
 #include <string>
@@ -63,10 +64,6 @@ float __ticks;
 float __ticks2;
 float __buff_rot;
 glm::vec2 __buff_fall;
-
-long double operator""b(long double x) {
-    return x * gl.sprite_size;
-}
 
 /// @brief Function for resizing window
 /// @param win GLFW window poiner
@@ -214,16 +211,6 @@ bool blocks_collide() {
             p_pos.x <= b_rt.x && p_pos.y <= b_rt.y) return true;
     }
     return false;
-}
-
-void create_spike(int x, int y) {
-    sg_spikes.add_sprite("Spike", "", gl.sprite_shader, 1.b, 1.b, 0.f, x, y);
-    sg_spikes_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, cl.hbox_size.x, cl.hbox_size.y, 0.f, x + cl.hbox_size.x / 2, y);
-}
-
-void create_block(int x, int y) {
-    sg_blocks.add_sprite("Block", "", gl.sprite_shader, 1.b, 1.b, 0.f, x, y);
-    sg_blocks_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, 1.b, 1.b, 0.f, x, y);
 }
 
 void fall() {
@@ -387,7 +374,7 @@ int main(int argc, char const *argv[]) {
         sg_player_spike_hbox = SprGroup(&rm_main);
         sg_player_block_hbox = SprGroup(&rm_main);
         sg_attempt = SprGroup(&rm_main);
-        pars_main = Parser(&rm_main, &tl_main, &sg_ground, &gl);
+        pars_main = Parser(&rm_main, &tl_main, &sg_spikes, &sg_spikes_hbox, &sg_blocks, &sg_blocks_hbox, &cl, &gl);
         kh_main = KeyHandler(gl.win_main);
 
         // Creating and checking for sprite shader
@@ -426,11 +413,11 @@ int main(int argc, char const *argv[]) {
         sg_player.add_sprite("Player", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
 
         for (int i = 3; i < 14; i++) {
-            create_block(i * 1.b, 1.b);
+            pars_main.create_block(i * 1.b, 1.b);
         }
-        create_block(15.b, 0.b);
-        create_block(16.b, 0.b);
-        create_spike(17.b, 0.b);
+        pars_main.create_block(15.b, 0.b);
+        pars_main.create_block(16.b, 0.b);
+        pars_main.create_spike(17.b, 0.b);
 
         sg_player_spike_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
         sg_player_block_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, 0.4b, 0.4b, 0.f, pl.x, pl.y);

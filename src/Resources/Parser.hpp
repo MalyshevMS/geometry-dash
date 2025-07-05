@@ -2,18 +2,34 @@
 #include "SpriteGroup.hpp"
 #include "TextureLoader.hpp"
 #include "../Variables/OpenGL.hpp"
+#include "../Variables/Client.hpp"
 #include "json.hpp"
+#include "../defines"
 
 
 class Parser {
-    private:
+private:
     using json = nlohmann::json;
     using DPair = std::pair<std::string, uint64_t>;
     ResourceManager* rm = nullptr;
     TexLoader* tx = nullptr;
-    SprGroup* sg = nullptr;
+    SprGroup* sg_spikes = nullptr;
+    SprGroup* sg_spikes_hbox = nullptr;
+    SprGroup* sg_blocks = nullptr;
+    SprGroup* sg_blocks_hbox = nullptr;
     OpenGL* gl = nullptr;
+    Client* cl = nullptr;
 public:
+    void create_spike(int x, int y) {
+        sg_spikes->add_sprite("Spike", "", gl->sprite_shader, 1.b, 1.b, 0.f, x, y);
+        sg_spikes_hbox->add_sprite("SpikeHitbox", "", gl->sprite_shader, cl->hbox_size.x, cl->hbox_size.y, 0.f, x + cl->hbox_size.x / 2, y);
+    }
+
+    void create_block(int x, int y) {
+        sg_blocks->add_sprite("Block", "", gl->sprite_shader, 1.b, 1.b, 0.f, x, y);
+        sg_blocks_hbox->add_sprite("BlockHitbox", "", gl->sprite_shader, 1.b, 1.b, 0.f, x, y);
+    }
+
     json get_json(const std::string& path) {
         std::fstream f;
         f.open(rm->getExePath() + path);
@@ -22,11 +38,18 @@ public:
         return file;
     }
 
-    Parser(ResourceManager* rm = nullptr, TexLoader* tx = nullptr, SprGroup* sg = nullptr, OpenGL* gl = nullptr) {
+    Parser(ResourceManager* rm = nullptr, TexLoader* tx = nullptr,            \
+           SprGroup* sg_spikes = nullptr, SprGroup* sg_spikes_hbox = nullptr, \
+           SprGroup* sg_blocks = nullptr, SprGroup* sg_blocks_hbox = nullptr, \
+           Client* cl = nullptr, OpenGL* gl = nullptr) {
         this->rm = rm;
         this->tx = tx;
-        this->sg = sg;
         this->gl = gl;
+        this->cl = cl;
+        this->sg_blocks = sg_blocks;
+        this->sg_spikes = sg_spikes;
+        this->sg_blocks_hbox = sg_blocks_hbox;
+        this->sg_spikes_hbox = sg_spikes_hbox;
     };
 
     void parse_player(std::string path, SprGroup* sg_p, const glm::vec2& spawn_pos) {

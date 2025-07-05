@@ -1,0 +1,5 @@
+#pragma once
+
+long double operator""b(long double x) {
+    return x * 80.f;
+}
