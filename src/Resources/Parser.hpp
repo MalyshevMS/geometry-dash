@@ -50,29 +50,8 @@ public:
         }
     }
 
-    void parse_lvl(std::string path, int* spr_size, bool parse_textures = true) {
+    void parse_lvl(std::string path) {
         json file = get_json(std::move(path));
-
-        *spr_size = file["sprite.size"];
         
-        if (parse_textures) {
-            std::vector <json> tex_arr = file["textures"]["array"];
-            for (auto i : tex_arr) {
-                std::string _name = i["name"];
-                std::string _path = i["path"];
-                tx->add_texture(_name, _path);
-            }
-
-            std::vector <json> atl_arr = file["textures"]["atlas"];
-            for (auto i : atl_arr) {
-                tx->add_textures_from_atlas(i["name"], i["path"], i["subtexs"], glm::vec2(i["size.x"], i["size.y"]));
-            }
-        }
-
-        std::vector <json> lvl = file["level"];
-        for (int i = 0; i < lvl.size(); i++) {
-            json _elem = lvl[i];
-            sg->add_sprite(_elem["tex"], "default", "SpriteShader", *spr_size, *spr_size, _elem["rot"], _elem["x"], _elem["y"]);
-        }
     };
 };

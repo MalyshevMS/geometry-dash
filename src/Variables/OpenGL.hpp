@@ -1,5 +1,6 @@
 #pragma once
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <string>
 #include <glm/vec2.hpp>
 
@@ -12,6 +13,7 @@ struct OpenGL {
     int font_width = 80;
     int font_height = 80;
     glm::vec2 win_size = glm::vec2(1280, 720);
-    std::string win_title = "ParCour-game";
+    std::string win_title = "Geometry dash";
+    GLFWwindow* win_main;
     bool fullscreen = false;
 };

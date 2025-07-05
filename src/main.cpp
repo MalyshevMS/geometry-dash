@@ -1,5 +1,4 @@
 // #define debug
-// #define hitbox
 
 #include <glad/glad.h> // OpenGL libs
 #include <GLFW/glfw3.h>
@@ -53,6 +52,7 @@ SprGroup sg_buttons; // Group for buttons
 SprGroup sg_player; // Group for Player 1
 SprGroup sg_player_spike_hbox; // Group for Player spike hitbox
 SprGroup sg_player_block_hbox; // Group for Player block hitbox
+SprGroup sg_attempt; // Group for attempt text
 SprGroup sg_trail;
 
 Parser pars_main; // Main parser
@@ -170,12 +170,16 @@ void spawn_ground() {
     }
 }
 
-void reset() {
+void reset(bool await = true) {
+    if (await) sleep(1000);
     pl.x = pl.spawn_x;
     pl.y = pl.spawn_y;
     pl.rotation = 0.f;
     sg_ground.delete_all();
     spawn_ground();
+    sg_attempt.delete_all();
+    cl.attempt++;
+    sg_attempt.add_text("Font", string("attempt ") + to_string(cl.attempt), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, 1.b, 1.5b);
 }
 
 bool spikes_collide() {
@@ -266,7 +270,11 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
     }
 
     if (key == KEY_R && action == GLFW_PRESS) {
-        reset();
+        reset(false);
+    }
+
+    if (key == KEY_H && action == GLFW_PRESS) {
+        cl.show_hitboxes = !cl.show_hitboxes;
     }
 
     if (key == KEY_ESCAPE && action == GLFW_PRESS) {
@@ -276,12 +284,12 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
 
 /// @brief Function for proceeding keys pressing. P.S. This function supports long key pressing
 /// @param win GLFW window pointer
-void keyHandler(GLFWwindow* win) {
-    if(glfwGetKey(win, KEY_ENTER) == GLFW_PRESS){
+void keyHandler() {
+    if(glfwGetKey(gl.win_main, KEY_ENTER) == GLFW_PRESS){
         cout << "X: " << pl.x << " Y: " << pl.y << " ROTATION: " << pl.rotation << endl;
     }
 
-    if (glfwGetKey(win, KEY_UP) == GLFW_PRESS || glfwGetKey(win, KEY_SPACE) == GLFW_PRESS || glfwGetMouseButton(win, MOUSE_LEFT) == GLFW_PRESS) {
+    if (glfwGetKey(gl.win_main, KEY_UP) == GLFW_PRESS || glfwGetKey(gl.win_main, KEY_SPACE) == GLFW_PRESS || glfwGetMouseButton(gl.win_main, MOUSE_LEFT) == GLFW_PRESS) {
         if (collides_floor()) {
             thread t(jump);
             t.detach();
@@ -339,23 +347,22 @@ int main(int argc, char const *argv[]) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_MAXIMIZED, 0);
 
-    GLFWwindow* window;
     if (gl.fullscreen) { // Creating window (fullscreen or windowed)
-        window = glfwCreateWindow(gl.win_size.x, gl.win_size.y, gl.win_title.c_str(), glfwGetPrimaryMonitor(), nullptr);
+        gl.win_main = glfwCreateWindow(gl.win_size.x, gl.win_size.y, gl.win_title.c_str(), glfwGetPrimaryMonitor(), nullptr);
     } else {
-        window = glfwCreateWindow(gl.win_size.x, gl.win_size.y, gl.win_title.c_str(), nullptr, nullptr);
+        gl.win_main = glfwCreateWindow(gl.win_size.x, gl.win_size.y, gl.win_title.c_str(), nullptr, nullptr);
     }
 
-    if (!window) { // Checking for creating window
+    if (!gl.win_main) { // Checking for creating window
         cerr << "glfwCreateWindow failed!" << endl;
         glfwTerminate();
         return -1;
     }
 
-    glfwSetKeyCallback(window, onceKeyHandler); // Setting Key Handler
-    glfwSetWindowSizeCallback(window, sizeHandler); // Setting Size Handler
+    glfwSetKeyCallback(gl.win_main, onceKeyHandler); // Setting Key Handler
+    glfwSetWindowSizeCallback(gl.win_main, sizeHandler); // Setting Size Handler
 
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(gl.win_main);
 
     if (!gladLoadGL()) { // Checking for GLAD
         cerr << "Can't load GLAD!" << endl;
@@ -379,8 +386,9 @@ int main(int argc, char const *argv[]) {
         sg_blocks_hbox = SprGroup(&rm_main);
         sg_player_spike_hbox = SprGroup(&rm_main);
         sg_player_block_hbox = SprGroup(&rm_main);
+        sg_attempt = SprGroup(&rm_main);
         pars_main = Parser(&rm_main, &tl_main, &sg_ground, &gl);
-        kh_main = KeyHandler(window);
+        kh_main = KeyHandler(gl.win_main);
 
         // Creating and checking for sprite shader
         auto spriteShaderProgram = rm_main.loadShaders(gl.sprite_shader, gl.sprite_shader_vertex, gl.sprite_shader_fragment);
@@ -416,7 +424,6 @@ int main(int argc, char const *argv[]) {
         cam.y = pl.y - gl.win_size.y / 2 + 200;
 
         sg_player.add_sprite("Player", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
-        spawn_ground();
 
         for (int i = 3; i < 14; i++) {
             create_block(i * 1.b, 1.b);
@@ -435,10 +442,12 @@ int main(int argc, char const *argv[]) {
         glm::mat4 projMat;
         double cx, cy;
 
-        while (!glfwWindowShouldClose(window)) { // Main game loop
+        reset(false);
+
+        while (!glfwWindowShouldClose(gl.win_main)) { // Main game loop
             glClear(GL_COLOR_BUFFER_BIT);
 
-            keyHandler(window); // Setting (old) key handler
+            keyHandler(); // Setting (old) key handler
             kh_main.use(cl); // Setting (new) key handler
 
             // Projection matrix variables
@@ -475,12 +484,17 @@ int main(int argc, char const *argv[]) {
             }
 
             sg_player.update_all();
-            #ifndef hitbox
+            if (!cl.show_hitboxes) {
                 sg_blocks_hbox.hide_all();
                 sg_spikes_hbox.hide_all();
                 sg_player_block_hbox.hide_all();
                 sg_player_spike_hbox.hide_all();
-            #endif
+            } else {
+                sg_blocks_hbox.show_all();
+                sg_spikes_hbox.show_all();
+                sg_player_block_hbox.show_all();
+                sg_player_spike_hbox.show_all();
+            }
 
             // Rendering all sprites
             sg_player.render_all();
@@ -493,13 +507,14 @@ int main(int argc, char const *argv[]) {
             sg_blocks.render_all();
             sg_spikes_hbox.render_all();
             sg_blocks_hbox.render_all();
+            sg_attempt.render_all();
             
-            glfwGetCursorPos(window, &cx, &cy);
+            glfwGetCursorPos(gl.win_main, &cx, &cy);
             pl.cur.x = cx + cam.x;
             pl.cur.y = gl.win_size.y - cy + cam.y;
 
             sleep(1); // 1ms delay
-            glfwSwapBuffers(window); // Swapping front and back buffers
+            glfwSwapBuffers(gl.win_main); // Swapping front and back buffers
             glfwPollEvents(); // Polling events
         }
         
@@ -514,6 +529,7 @@ int main(int argc, char const *argv[]) {
         sg_blocks.delete_all();
         sg_spikes_hbox.delete_all();
         sg_blocks_hbox.delete_all();
+        sg_attempt.delete_all();
     }
 
 
