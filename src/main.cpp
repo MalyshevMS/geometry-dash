@@ -1,5 +1,5 @@
 // #define debug
-#define hitbox
+// #define hitbox
 
 #include <glad/glad.h> // OpenGL libs
 #include <GLFW/glfw3.h>
@@ -51,7 +51,8 @@ SprGroup sg_spikes_hbox; // Group for spikes hitbox
 SprGroup sg_blocks_hbox; // Group for blocks hitbox
 SprGroup sg_buttons; // Group for buttons
 SprGroup sg_player; // Group for Player 1
-SprGroup sg_player_hbox; // Group for Player hitbox
+SprGroup sg_player_spike_hbox; // Group for Player spike hitbox
+SprGroup sg_player_block_hbox; // Group for Player block hitbox
 SprGroup sg_trail;
 
 Parser pars_main; // Main parser
@@ -62,6 +63,10 @@ float __ticks;
 float __ticks2;
 float __buff_rot;
 glm::vec2 __buff_fall;
+
+long double operator""b(long double x) {
+    return x * gl.sprite_size;
+}
 
 /// @brief Function for resizing window
 /// @param win GLFW window poiner
@@ -85,61 +90,6 @@ void sizeHandler(GLFWwindow* win, int width, int height) {
 //     }
 //     return false;
 // }
-
-auto parabola_fall = [](int x){
-    return (1.f / 256.f) * x * x;
-};
-
-auto find_nearest = [](int x, int y){
-    int remainder = x % y;
-    if (remainder >= y / 2) {
-        return x + (y - remainder);
-    } else {
-        return x - remainder;
-    }
-}; 
-
-void fix_rotation() {
-    pl.rotation = find_nearest(pl.rotation, 90);
-    cl.is_fixed_rot = true;
-}
-
-void fix_clipping() {
-    if (pl.y < 0) {
-        pl.y++;
-    }
-}
-
-void spawn_ground() {
-    for(int i = 0; i < 18; i++) {
-        sg_ground.add_sprite("Ground", "", gl.sprite_shader, 3 * gl.sprite_size, 3 * gl.sprite_size, 0.f, i * gl.sprite_size * 3 - 6 * gl.sprite_size, -240);
-    }
-}
-
-void reset() {
-    pl.x = pl.spawn_x;
-    pl.y = pl.spawn_y;
-    pl.rotation = 0.f;
-    sg_ground.delete_all();
-    spawn_ground();
-}
-
-bool spikes_collide() {
-    for (auto i : sg_spikes_hbox.get_sprites()) {
-        auto s_pos = i->getPos();
-        auto p_pos = glm::vec2(pl.x, pl.y);
-        auto s_size = cl.hbox_size;
-        auto p_size = glm::vec2(gl.sprite_size);
-        
-
-        auto s_rt = s_pos + s_size;
-        auto p_rt = p_pos + p_size;
-
-        if (p_rt.x >= s_pos.x && p_rt.y >= s_pos.y && \
-            p_pos.x <= s_rt.x && p_pos.y <= s_rt.y) return true;
-    }
-    return false;
-}
 
 /// @brief Checks if player collides floor
 /// @param epsilon how much units player can go through sprite in Y direction
@@ -190,21 +140,93 @@ bool collides_right(int epsilon = 0, int epsilon2 = 2) {
     return false;
 }
 
+auto parabola_fall = [](int x){
+    return (1.f / 256.f) * x * x;
+};
+
+auto find_nearest = [](int x, int y){
+    int remainder = x % y;
+    if (remainder >= y / 2) {
+        return x + (y - remainder);
+    } else {
+        return x - remainder;
+    }
+};
+
+void fix_rotation() {
+    pl.rotation = find_nearest(pl.rotation, 90);
+    cl.is_fixed_rot = true;
+}
+
+void fix_clipping() {
+    if (pl.y < 0 || collides_floor(1)) {
+        pl.y++;
+    }
+}
+
+void spawn_ground() {
+    for(int i = 0; i < 18; i++) {
+        sg_ground.add_sprite("Ground", "", gl.sprite_shader, 3.b, 3.b, 0.f, i * 3.b - 6.b, -3.b);
+    }
+}
+
+void reset() {
+    pl.x = pl.spawn_x;
+    pl.y = pl.spawn_y;
+    pl.rotation = 0.f;
+    sg_ground.delete_all();
+    spawn_ground();
+}
+
+bool spikes_collide() {
+    for (auto i : sg_spikes_hbox.get_sprites()) {
+        auto s_pos = i->getPos();
+        auto p_pos = glm::vec2(pl.x, pl.y);
+        auto s_size = cl.hbox_size;
+        auto p_size = glm::vec2(1.b);
+        
+
+        auto s_rt = s_pos + s_size;
+        auto p_rt = p_pos + p_size;
+
+        if (p_rt.x >= s_pos.x && p_rt.y >= s_pos.y && \
+            p_pos.x <= s_rt.x && p_pos.y <= s_rt.y) return true;
+    }
+    return false;
+}
+
+bool blocks_collide() {
+    for (auto i : sg_blocks_hbox.get_sprites()) {
+        auto b_pos = i->getPos();
+        auto p_pos = glm::vec2(pl.x + 0.3b, pl.y + 0.3b);
+        auto b_size = glm::vec2(1.b);
+        auto p_size = glm::vec2(0.4b);
+        
+
+        auto b_rt = b_pos + b_size;
+        auto p_rt = p_pos + p_size;
+
+        if (p_rt.x >= b_pos.x && p_rt.y >= b_pos.y && \
+            p_pos.x <= b_rt.x && p_pos.y <= b_rt.y) return true;
+    }
+    return false;
+}
+
 void create_spike(int x, int y) {
-    sg_spikes.add_sprite("Spike", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, x, y);
+    sg_spikes.add_sprite("Spike", "", gl.sprite_shader, 1.b, 1.b, 0.f, x, y);
     sg_spikes_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, cl.hbox_size.x, cl.hbox_size.y, 0.f, x + cl.hbox_size.x / 2, y);
 }
 
 void create_block(int x, int y) {
-    sg_blocks.add_sprite("Block", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, x, y);
-    sg_blocks_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, x, y);
+    sg_blocks.add_sprite("Block", "", gl.sprite_shader, 1.b, 1.b, 0.f, x, y);
+    sg_blocks_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, 1.b, 1.b, 0.f, x, y);
 }
 
 void fall() {
     if (pl.y > 0 && !cl.is_jumping && !collides_floor()) {
         cl.is_falling = true;
         pl.y = -parabola_fall(pl.x - __buff_fall.x) + __buff_fall.y; // не спрашивай почему тут 31, оно работает, так что не трогай
-        pl.rotation += -90.f / 40.f; // не спрашивай почему тут 32.f, оно работает, так что не трогай
+        if (!collides_floor()) pl.rotation += -90.f / 40.f; // не спрашивай почему тут 40.f, оно работает, так что не трогай
         cl.is_fixed_rot = false;
     } else {
         cl.is_falling = false;
@@ -229,7 +251,7 @@ void jump() {
 
 void trail() {
     if (pl.x % 2 == 0) {
-        sg_trail.add_sprite("Trail", "", gl.sprite_shader, 8, 8, pl.rotation, pl.x + 40, pl.y + 40);
+        sg_trail.add_sprite("Trail", "", gl.sprite_shader, 0.2b, 0.2b, pl.rotation, pl.x + 0.5b, pl.y + 0.5b);
     }
 
     if (sg_trail.get_sprites().size() >= 120 ) {
@@ -260,7 +282,7 @@ void keyHandler(GLFWwindow* win) {
     }
 
     if (glfwGetKey(win, KEY_UP) == GLFW_PRESS || glfwGetKey(win, KEY_SPACE) == GLFW_PRESS || glfwGetMouseButton(win, MOUSE_LEFT) == GLFW_PRESS) {
-        if (!cl.is_jumping && !cl.is_falling) {
+        if (collides_floor()) {
             thread t(jump);
             t.detach();
         }
@@ -355,7 +377,8 @@ int main(int argc, char const *argv[]) {
         sg_blocks = SprGroup(&rm_main);
         sg_spikes_hbox = SprGroup(&rm_main);
         sg_blocks_hbox = SprGroup(&rm_main);
-        sg_player_hbox = SprGroup(&rm_main);
+        sg_player_spike_hbox = SprGroup(&rm_main);
+        sg_player_block_hbox = SprGroup(&rm_main);
         pars_main = Parser(&rm_main, &tl_main, &sg_ground, &gl);
         kh_main = KeyHandler(window);
 
@@ -392,23 +415,18 @@ int main(int argc, char const *argv[]) {
 
         cam.y = pl.y - gl.win_size.y / 2 + 200;
 
-        sg_player.add_sprite("Player", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, pl.x, pl.y);
+        sg_player.add_sprite("Player", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
         spawn_ground();
 
-        create_spike(gl.sprite_size * 20, 0);
-        create_spike(gl.sprite_size * 40, 0);
+        for (int i = 3; i < 14; i++) {
+            create_block(i * 1.b, 1.b);
+        }
+        create_block(15.b, 0.b);
+        create_block(16.b, 0.b);
+        create_spike(17.b, 0.b);
 
-        create_block(gl.sprite_size * 30, gl.sprite_size);
-        create_block(gl.sprite_size * 31, gl.sprite_size);
-        create_block(gl.sprite_size * 32, gl.sprite_size);
-        create_block(gl.sprite_size * 32, gl.sprite_size * 2);
-        create_block(gl.sprite_size * 32, gl.sprite_size * 3);
-
-        sg_player_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, gl.sprite_size, gl.sprite_size, 0.f, pl.x, pl.y);
-
-        #ifndef hitbox
-            sg_spikes_hbox.hide_all();
-        #endif
+        sg_player_spike_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
+        sg_player_block_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, 0.4b, 0.4b, 0.f, pl.x, pl.y);
 
         float projMat_right  = 0.f;
         float projMat_top    = 0.f;
@@ -438,8 +456,7 @@ int main(int argc, char const *argv[]) {
             
             fall();
             fix_clipping();
-            if (spikes_collide()) {
-                cout << "TYLYP" << endl;
+            if (spikes_collide() || blocks_collide()) {
                 reset();
             }
             #ifdef debug
@@ -448,7 +465,8 @@ int main(int argc, char const *argv[]) {
 
             pl.update();
             sg_player.set_pos(pl.x, pl.y);
-            sg_player_hbox.set_pos(pl.x, pl.y);
+            sg_player_spike_hbox.set_pos(pl.x, pl.y);
+            sg_player_block_hbox.set_pos(pl.x + 0.3b, pl.y + 0.3b);
             sg_player.rotate_all(pl.rotation);
             cam.x = pl.x - gl.win_size.x / 2 + 240;
 
@@ -457,10 +475,17 @@ int main(int argc, char const *argv[]) {
             }
 
             sg_player.update_all();
+            #ifndef hitbox
+                sg_blocks_hbox.hide_all();
+                sg_spikes_hbox.hide_all();
+                sg_player_block_hbox.hide_all();
+                sg_player_spike_hbox.hide_all();
+            #endif
 
             // Rendering all sprites
             sg_player.render_all();
-            sg_player_hbox.render_all();
+            sg_player_spike_hbox.render_all();
+            sg_player_block_hbox.render_all();
             sg_ground.render_all();
             sg_buttons.render_all();
             sg_trail.render_all();
@@ -479,12 +504,16 @@ int main(int argc, char const *argv[]) {
         }
         
         // Deleting all sprites from all groups
-        sg_spikes.render_all();
-        sg_spikes_hbox.render_all();
-        sg_blocks.render_all();
-        sg_blocks_hbox.render_all();
+        sg_player.delete_all();
+        sg_player_spike_hbox.delete_all();
+        sg_player_block_hbox.delete_all();
         sg_ground.delete_all();
+        sg_buttons.delete_all();
         sg_trail.delete_all();
+        sg_spikes.delete_all();
+        sg_blocks.delete_all();
+        sg_spikes_hbox.delete_all();
+        sg_blocks_hbox.delete_all();
     }
 
 
