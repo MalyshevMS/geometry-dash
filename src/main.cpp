@@ -422,7 +422,6 @@ int main(int argc, char const *argv[]) {
         //parser
         pars_main.parse_lvl("res/lvl/level.json");
 
-;
         float projMat_right  = 0.f;
         float projMat_top    = 0.f;
         float projMat_left   = 0.f;
