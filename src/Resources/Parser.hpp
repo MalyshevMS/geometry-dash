@@ -75,6 +75,15 @@ public:
 
     void parse_lvl(std::string path) {
         json file = get_json(std::move(path));
-        
+        std::vector <json> lvl = file["level"];
+        for(int i =0; i< lvl.size(); i++){
+            json _elem = lvl[i];
+            if ( _elem["type"] == "spike"){
+                create_spike(int(_elem["x"]) * 1.b , int(_elem["y"])*1.b);
+            }
+            else if( _elem["type"] == "block"){
+                create_block(int(_elem["x"])*1.b, int(_elem["y"])* 1.b);
+            }
+        }
     };
 };

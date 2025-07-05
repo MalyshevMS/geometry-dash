@@ -406,22 +406,23 @@ int main(int argc, char const *argv[]) {
         tl_main.add_texture("SpikeHitbox", "res/textures/hitbox_spike.png");
         tl_main.add_texture("BlockHitbox", "res/textures/hitbox_block.png");
 
+
+
         sg_player.set_timer();
 
         cam.y = pl.y - gl.win_size.y / 2 + 200;
 
         sg_player.add_sprite("Player", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
 
-        for (int i = 3; i < 14; i++) {
-            pars_main.create_block(i * 1.b, 1.b);
-        }
-        pars_main.create_block(15.b, 0.b);
-        pars_main.create_block(16.b, 0.b);
-        pars_main.create_spike(17.b, 0.b);
+        
 
         sg_player_spike_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
         sg_player_block_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, 0.4b, 0.4b, 0.f, pl.x, pl.y);
 
+        //parser
+        pars_main.parse_lvl("res/lvl/level.json");
+
+;
         float projMat_right  = 0.f;
         float projMat_top    = 0.f;
         float projMat_left   = 0.f;
