@@ -3,3 +3,14 @@
 long double operator""b(long double x) {
     return x * 80.f;
 }
+
+class Layers {
+public:
+    constexpr static float player      = 0.f;
+    constexpr static float ground      = -0.2f;
+    constexpr static float blocks      = -0.1f;
+    constexpr static float hbox_spikes = 0.2f;
+    constexpr static float hbox_blocks = 0.3f;
+    constexpr static float text        = 0.9f;
+    constexpr static float ui          = 1.f;
+};

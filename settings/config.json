@@ -1,8 +1,8 @@
 {
     "OpenGL": {
         "sprite.shader": "SpriteShader",
-        "sprite.shader.vertex": "res/shaders/vSprite.cfg",
-        "sprite.shader.fragment": "res/shaders/fSprite.cfg",
+        "sprite.shader.vertex": "res/shaders/vSprite.glsl",
+        "sprite.shader.fragment": "res/shaders/fSprite.glsl",
         "font.height": 40,
         "font.width": 28,
         "window.width": 1280,

@@ -1,4 +1,4 @@
-// #define debug
+#define debug
 
 #include <glad/glad.h> // OpenGL libs
 #include <GLFW/glfw3.h>
@@ -53,6 +53,8 @@ SprGroup sg_buttons; // Group for buttons
 SprGroup sg_player; // Group for Player 1
 SprGroup sg_player_spike_hbox; // Group for Player spike hitbox
 SprGroup sg_player_block_hbox; // Group for Player block hitbox
+SprGroup sg_end_level; // Group for level end
+SprGroup sg_ui; // Group for UI
 SprGroup sg_attempt; // Group for attempt text
 SprGroup sg_trail;
 
@@ -150,13 +152,27 @@ auto find_nearest = [](int x, int y){
     }
 };
 
+void gen_end_level() {
+    int _max;
+    for (auto i : sg_blocks.get_sprites()) {
+        if (i->getPos().x > _max) _max = i->getPos().x;
+    }
+
+    for (auto i : sg_spikes.get_sprites()) {
+        if (i->getPos().x > _max) _max = i->getPos().x;
+    }
+
+    sg_end_level.add_sprite("EndLevel", "", gl.sprite_shader, 2.b, 8.b, 0.f, _max + 5.b, pl.y - 4.b);
+    cl.end_pos = _max + 10.b;
+}
+
 void fix_rotation() {
     pl.rotation = find_nearest(pl.rotation, 90);
     cl.is_fixed_rot = true;
 }
 
 void fix_clipping() {
-    if (pl.y < 0 || collides_floor(1)) {
+    if (pl.y < 0 || collides_floor(-1)) {
         pl.y++;
     }
 }
@@ -242,12 +258,37 @@ void jump() {
 
 void trail() {
     if (pl.x % 2 == 0) {
-        sg_trail.add_sprite("Trail", "", gl.sprite_shader, 0.2b, 0.2b, pl.rotation, pl.x + 0.5b, pl.y + 0.5b);
+        sg_trail.add_sprite("Trail", "", gl.sprite_shader, 0.1b, 0.1b, pl.rotation, pl.x + 0.5b, pl.y + 0.5b);
     }
 
     if (sg_trail.get_sprites().size() >= 120 ) {
         sg_trail.delete_all();
     }
+}
+
+double lastTime = 0;
+int frameCount = 0;
+
+void updateFPS() {
+    double currentTime = glfwGetTime();
+    double delta = currentTime - lastTime;
+    frameCount++;
+    
+    if (delta >= 1.0) {
+        double fps = frameCount / delta;
+        cl.fps = fps;
+
+        
+        frameCount = 0;
+        lastTime = currentTime;
+    }
+    sg_ui.delete_all();
+    sg_ui.add_text("Font", string("fps: ") + to_string(cl.fps), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, cam.x + 0.1b, cam.y + 8.5b);
+}
+
+void update_ui() {
+    sg_ui.add_text("Font", string("x: ") + to_string(pl.x), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, cam.x + 0.1b, cam.y + 8.b);
+    sg_ui.add_text("Font", string("y: ") + to_string(pl.y), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, cam.x + 0.1b, cam.y + 7.5b);
 }
 
 /// @brief Proceeds once key pressings (if key was hold down for a long it's still will be recognize as once pressing)
@@ -262,6 +303,10 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
 
     if (key == KEY_H && action == GLFW_PRESS) {
         cl.show_hitboxes = !cl.show_hitboxes;
+    }
+
+    if (key == KEY_G && action == GLFW_PRESS) {
+        cl._debug = !cl._debug;
     }
 
     if (key == KEY_ESCAPE && action == GLFW_PRESS) {
@@ -339,18 +384,18 @@ int main(int argc, char const *argv[]) {
     } else {
         gl.win_main = glfwCreateWindow(gl.win_size.x, gl.win_size.y, gl.win_title.c_str(), nullptr, nullptr);
     }
-
+    
     if (!gl.win_main) { // Checking for creating window
         cerr << "glfwCreateWindow failed!" << endl;
         glfwTerminate();
         return -1;
     }
-
+    
     glfwSetKeyCallback(gl.win_main, onceKeyHandler); // Setting Key Handler
     glfwSetWindowSizeCallback(gl.win_main, sizeHandler); // Setting Size Handler
-
+    
     glfwMakeContextCurrent(gl.win_main);
-
+    
     if (!gladLoadGL()) { // Checking for GLAD
         cerr << "Can't load GLAD!" << endl;
     }
@@ -373,7 +418,9 @@ int main(int argc, char const *argv[]) {
         sg_blocks_hbox = SprGroup(&rm_main);
         sg_player_spike_hbox = SprGroup(&rm_main);
         sg_player_block_hbox = SprGroup(&rm_main);
+        sg_end_level = SprGroup(&rm_main);
         sg_attempt = SprGroup(&rm_main);
+        sg_ui = SprGroup(&rm_main);
         pars_main = Parser(&rm_main, &tl_main, &sg_spikes, &sg_spikes_hbox, &sg_blocks, &sg_blocks_hbox, &cl, &gl);
         kh_main = KeyHandler(gl.win_main);
 
@@ -405,8 +452,7 @@ int main(int argc, char const *argv[]) {
         tl_main.add_texture("Spike", "res/textures/spike.png");
         tl_main.add_texture("SpikeHitbox", "res/textures/hitbox_spike.png");
         tl_main.add_texture("BlockHitbox", "res/textures/hitbox_block.png");
-
-
+        tl_main.add_texture("EndLevel", "res/textures/end_level.png");
 
         sg_player.set_timer();
 
@@ -414,10 +460,8 @@ int main(int argc, char const *argv[]) {
 
         sg_player.add_sprite("Player", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
 
-        
-
         sg_player_spike_hbox.add_sprite("SpikeHitbox", "", gl.sprite_shader, 1.b, 1.b, 0.f, pl.x, pl.y);
-        sg_player_block_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, 0.4b, 0.4b, 0.f, pl.x, pl.y);
+        sg_player_block_hbox.add_sprite("BlockHitbox", "", gl.sprite_shader, 0.4b, 0.4b, 0.f, pl.x + 0.3b, pl.y + 0.3b);
 
         //parser
         pars_main.parse_lvl("res/lvl/level.json");
@@ -428,11 +472,26 @@ int main(int argc, char const *argv[]) {
         float projMat_bottom = 0.f;
         glm::mat4 projMat;
         double cx, cy;
+        lastTime = glfwGetTime();
+
+        sg_attempt.set_global_zLayer(Layers::text);
+        sg_trail.set_global_zLayer(Layers::text);
+        sg_blocks.set_global_zLayer(Layers::blocks);
+        sg_spikes.set_global_zLayer(Layers::blocks);
+        sg_end_level.set_global_zLayer(Layers::blocks);
+        sg_ground.set_global_zLayer(Layers::ground);
+        sg_player.set_global_zLayer(Layers::player);
+
+        sg_player_spike_hbox.set_global_zLayer(Layers::hbox_spikes);
+        sg_player_block_hbox.set_global_zLayer(Layers::hbox_blocks);
+        sg_blocks_hbox.set_global_zLayer(Layers::hbox_blocks);
+        sg_spikes_hbox.set_global_zLayer(Layers::hbox_spikes);
 
         reset(false);
+        gen_end_level();
 
         while (!glfwWindowShouldClose(gl.win_main)) { // Main game loop
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             keyHandler(); // Setting (old) key handler
             kh_main.use(cl); // Setting (new) key handler
@@ -452,12 +511,17 @@ int main(int argc, char const *argv[]) {
             
             fall();
             fix_clipping();
-            if (spikes_collide() || blocks_collide()) {
+            if (spikes_collide() || blocks_collide() && !pl.noclip) {
                 reset();
             }
-            #ifdef debug
+
+            if (cl._debug) {
+                updateFPS();
                 trail();
-            #endif
+                update_ui();
+            } else {
+                sg_ui.delete_all();
+            }
 
             pl.update();
             sg_player.set_pos(pl.x, pl.y);
@@ -483,6 +547,7 @@ int main(int argc, char const *argv[]) {
                 sg_player_spike_hbox.show_all();
             }
 
+
             // Rendering all sprites
             sg_player.render_all();
             sg_player_spike_hbox.render_all();
@@ -494,7 +559,9 @@ int main(int argc, char const *argv[]) {
             sg_blocks.render_all();
             sg_spikes_hbox.render_all();
             sg_blocks_hbox.render_all();
+            sg_end_level.render_all();
             sg_attempt.render_all();
+            sg_ui.render_all();
             
             glfwGetCursorPos(gl.win_main, &cx, &cy);
             pl.cur.x = cx + cam.x;
@@ -516,7 +583,9 @@ int main(int argc, char const *argv[]) {
         sg_blocks.delete_all();
         sg_spikes_hbox.delete_all();
         sg_blocks_hbox.delete_all();
+        sg_end_level.delete_all();
         sg_attempt.delete_all();
+        sg_ui.delete_all();
     }
 
 

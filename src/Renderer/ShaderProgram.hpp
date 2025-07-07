@@ -82,6 +82,10 @@ namespace Renderer {
             glUniform1i(glGetUniformLocation(_ID, name.c_str()), value);
         };
 
+        void setFloat(const std::string& name, const GLfloat value) {
+            glUniform1f(glGetUniformLocation(_ID, name.c_str()), value);
+        };
+
         void setMat4(const std::string& name, const glm::mat4& matrix) {
             glUniformMatrix4fv(glGetUniformLocation(_ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
         };

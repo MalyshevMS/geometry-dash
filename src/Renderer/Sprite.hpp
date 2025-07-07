@@ -16,6 +16,7 @@ namespace Renderer  {
         std::shared_ptr<ShaderProgram> _shader_prog;
         glm::vec2 _pos, _size;
         float _rotation;
+        float _zLayer = 0.f;
         GLuint _VAO;
         GLuint _vertexCoordsVBO;
         GLuint _texCoordsVBO;
@@ -51,8 +52,10 @@ namespace Renderer  {
             };
 
             glEnable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glDepthMask(GL_FALSE);
+            glDepthMask(GL_TRUE);
 
             glGenVertexArrays(1, &_VAO);
             glBindVertexArray(_VAO);
@@ -89,6 +92,8 @@ namespace Renderer  {
             _shader_prog->use();
 
             glm::mat4 model(1.f);
+
+            _shader_prog->setFloat("zLayer", _zLayer);
 
             model = glm::translate(model, glm::vec3(_pos, 0.f));
             model = glm::translate(model, glm::vec3(0.5f * _size.x, 0.5f * _size.y, 0.f));
@@ -127,5 +132,11 @@ namespace Renderer  {
         };
 
         float getRotation() { return _rotation; };
+
+        void setZLayer(const float zLayer) {
+            _zLayer = zLayer;
+        }
+
+        float getZLayer() { return _zLayer; };
     };
 }

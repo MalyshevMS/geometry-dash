@@ -96,6 +96,16 @@ public:
         last = std::chrono::high_resolution_clock::now();
     };
 
+    void set_zLayer(int spr_num, float zLayer) {
+        sprites[spr_num]->setZLayer(zLayer);
+    };
+
+    void set_global_zLayer(float zLayer) {
+        for (int i = 0; i < sprites.size(); i++) {
+            sprites[i]->setZLayer(zLayer);
+        }
+    };
+
     bool hovered(int spr_num, Cursor& c) {
         if (!sprites[spr_num]->_render) return false;
         if (c.x >= sprites[spr_num]->getPos().x && c.x <= sprites[spr_num]->getPos().x + sprites[spr_num]->getSize().x && \
