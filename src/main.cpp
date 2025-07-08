@@ -31,6 +31,8 @@
 #include <cmath>
 #include <vector>
 #include <thread>
+#include <mutex>
+#include <atomic>
 
 using namespace std;
 using DPair = pair<string, uint64_t>;
@@ -66,6 +68,15 @@ float __ticks;
 float __ticks2;
 float __buff_rot;
 glm::vec2 __buff_fall;
+double __buff_cur_x, __buff_cur_y;
+double __last_time = 0;
+int __frame_count = 0;
+thread __thr_calc;
+mutex __mtx;
+std::atomic<bool> __stop_flag{false};
+std::atomic<bool> __failed{false};
+
+void calculations();
 
 /// @brief Function for resizing window
 /// @param win GLFW window poiner
@@ -185,14 +196,26 @@ void spawn_ground() {
 
 void reset(bool await = true) {
     if (await) sleep(1000);
+    {
+        lock_guard<mutex> lock(__mtx);
+        __stop_flag = true;
+        sleep(10);
+    }
+    
+    if (__thr_calc.joinable()) __thr_calc.join();
+    
     pl.x = pl.spawn_x;
     pl.y = pl.spawn_y;
     pl.rotation = 0.f;
-    sg_ground.delete_all();
-    spawn_ground();
-    sg_attempt.delete_all();
     cl.attempt++;
+    sg_ground.delete_all();
+    sg_attempt.delete_all();
+    spawn_ground();
     sg_attempt.add_text("Font", string("attempt ") + to_string(cl.attempt), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, 1.b, 1.5b);
+    
+    __stop_flag = false;
+    __thr_calc = thread(calculations);
+    __thr_calc.detach();
 }
 
 bool spikes_collide() {
@@ -261,26 +284,22 @@ void trail() {
         sg_trail.add_sprite("Trail", "", gl.sprite_shader, 0.1b, 0.1b, pl.rotation, pl.x + 0.5b, pl.y + 0.5b);
     }
 
-    if (sg_trail.get_sprites().size() >= 120 ) {
+    if (sg_trail.get_sprites().size() >= cl.trail_size) {
         sg_trail.delete_all();
     }
 }
 
-double lastTime = 0;
-int frameCount = 0;
 
 void updateFPS() {
-    double currentTime = glfwGetTime();
-    double delta = currentTime - lastTime;
-    frameCount++;
+    double currentTime = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() / 1000.0;
+    double delta = currentTime - __last_time;
+    __frame_count++;
     
     if (delta >= 1.0) {
-        double fps = frameCount / delta;
+        double fps = __frame_count / delta;
         cl.fps = fps;
-
-        
-        frameCount = 0;
-        lastTime = currentTime;
+        __frame_count = 0;
+        __last_time = currentTime;
     }
     sg_ui.delete_all();
     sg_ui.add_text("Font", string("fps: ") + to_string(cl.fps), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, cam.x + 0.1b, cam.y + 8.5b);
@@ -289,6 +308,13 @@ void updateFPS() {
 void update_ui() {
     sg_ui.add_text("Font", string("x: ") + to_string(pl.x), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, cam.x + 0.1b, cam.y + 8.b);
     sg_ui.add_text("Font", string("y: ") + to_string(pl.y), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, cam.x + 0.1b, cam.y + 7.5b);
+}
+
+void check_fail() {
+    if (__failed) {
+        __failed = false;
+        reset();
+    }
 }
 
 /// @brief Proceeds once key pressings (if key was hold down for a long it's still will be recognize as once pressing)
@@ -317,8 +343,16 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
 /// @brief Function for proceeding keys pressing. P.S. This function supports long key pressing
 /// @param win GLFW window pointer
 void keyHandler() {
-    if(glfwGetKey(gl.win_main, KEY_ENTER) == GLFW_PRESS){
-        cout << "X: " << pl.x << " Y: " << pl.y << " ROTATION: " << pl.rotation << endl;
+    if (glfwGetKey(gl.win_main, KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        if (glfwGetKey(gl.win_main, KEY_EQUAL) == GLFW_PRESS) {
+            cl.trail_size++;
+            cout << "\r" << "trail.size: " << cl.trail_size;
+        }
+
+        if (glfwGetKey(gl.win_main, KEY_MINUS) == GLFW_PRESS) {
+            cl.trail_size--;
+            cout << "\r" << "trail.size: " << cl.trail_size;
+        }
     }
 
     if (glfwGetKey(gl.win_main, KEY_UP) == GLFW_PRESS || glfwGetKey(gl.win_main, KEY_SPACE) == GLFW_PRESS || glfwGetMouseButton(gl.win_main, MOUSE_LEFT) == GLFW_PRESS) {
@@ -326,6 +360,47 @@ void keyHandler() {
             thread t(jump);
             t.detach();
         }
+    }
+}
+
+void calculations() {
+    spawn_ground();
+    sg_attempt.add_text("Font", string("attempt ") + to_string(cl.attempt), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, 1.b, 1.5b);
+    while (true) {
+        {
+            lock_guard<mutex> lock(__mtx);
+            if (__stop_flag) break;
+        }
+        keyHandler(); // Setting (old) key handler
+        kh_main.use(cl); // Setting (new) key handler
+
+        tl_main.bind_all(); // Binding all textures
+        
+        fall();
+        fix_clipping();
+        if (spikes_collide() || blocks_collide() && !pl.noclip) {
+            __failed = true;
+            break;
+        }
+
+        pl.update();
+        sg_player.set_pos(pl.x, pl.y);
+        sg_player_spike_hbox.set_pos(pl.x, pl.y);
+        sg_player_block_hbox.set_pos(pl.x + 0.3b, pl.y + 0.3b);
+        sg_player.rotate_all(pl.rotation);
+        cam.x = pl.x - gl.win_size.x / 2 + 3.b;
+
+        if (pl.x % (27 * gl.sprite_size) == 0 && pl.x != 0) {
+            sg_ground.move_all(27 * gl.sprite_size, 0);
+        }
+
+        sg_player.update_all();
+
+        glfwGetCursorPos(gl.win_main, &__buff_cur_x, &__buff_cur_y);
+        pl.cur.x = __buff_cur_x + cam.x;
+        pl.cur.y = gl.win_size.y - __buff_cur_y + cam.y;
+
+        sleep(1);
     }
 }
 
@@ -471,8 +546,7 @@ int main(int argc, char const *argv[]) {
         float projMat_left   = 0.f;
         float projMat_bottom = 0.f;
         glm::mat4 projMat;
-        double cx, cy;
-        lastTime = glfwGetTime();
+        __last_time = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() / 1000.0;
 
         sg_attempt.set_global_zLayer(Layers::text);
         sg_trail.set_global_zLayer(Layers::text);
@@ -493,9 +567,6 @@ int main(int argc, char const *argv[]) {
         while (!glfwWindowShouldClose(gl.win_main)) { // Main game loop
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            keyHandler(); // Setting (old) key handler
-            kh_main.use(cl); // Setting (new) key handler
-
             // Projection matrix variables
             projMat_right  = gl.win_size.x * cam.mag + cam.x;
             projMat_top    = gl.win_size.y * cam.mag + cam.y;
@@ -507,14 +578,6 @@ int main(int argc, char const *argv[]) {
             // Using projection matrix
             spriteShaderProgram->setMat4("projMat", projMat);
 
-            tl_main.bind_all(); // Binding all textures
-            
-            fall();
-            fix_clipping();
-            if (spikes_collide() || blocks_collide() && !pl.noclip) {
-                reset();
-            }
-
             if (cl._debug) {
                 updateFPS();
                 trail();
@@ -523,18 +586,8 @@ int main(int argc, char const *argv[]) {
                 sg_ui.delete_all();
             }
 
-            pl.update();
-            sg_player.set_pos(pl.x, pl.y);
-            sg_player_spike_hbox.set_pos(pl.x, pl.y);
-            sg_player_block_hbox.set_pos(pl.x + 0.3b, pl.y + 0.3b);
-            sg_player.rotate_all(pl.rotation);
-            cam.x = pl.x - gl.win_size.x / 2 + 240;
-
-            if (pl.x % (27 * gl.sprite_size) == 0 && pl.x != 0) {
-                sg_ground.move_all(27 * gl.sprite_size, 0);
-            }
-
-            sg_player.update_all();
+            check_fail();
+            
             if (!cl.show_hitboxes) {
                 sg_blocks_hbox.hide_all();
                 sg_spikes_hbox.hide_all();
@@ -546,7 +599,6 @@ int main(int argc, char const *argv[]) {
                 sg_player_block_hbox.show_all();
                 sg_player_spike_hbox.show_all();
             }
-
 
             // Rendering all sprites
             sg_player.render_all();
@@ -562,12 +614,7 @@ int main(int argc, char const *argv[]) {
             sg_end_level.render_all();
             sg_attempt.render_all();
             sg_ui.render_all();
-            
-            glfwGetCursorPos(gl.win_main, &cx, &cy);
-            pl.cur.x = cx + cam.x;
-            pl.cur.y = gl.win_size.y - cy + cam.y;
 
-            sleep(1); // 1ms delay
             glfwSwapBuffers(gl.win_main); // Swapping front and back buffers
             glfwPollEvents(); // Polling events
         }

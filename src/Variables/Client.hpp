@@ -5,6 +5,7 @@
 
 struct Client {
     bool _debug = false;
+    int trail_size = 120;
     bool in_game;
     bool is_jumping;
     bool is_falling;
