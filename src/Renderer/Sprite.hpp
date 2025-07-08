@@ -17,6 +17,7 @@ namespace Renderer  {
         glm::vec2 _pos, _size;
         float _rotation;
         float _zLayer = 0.f;
+        float _alpha = 1.f;
         GLuint _VAO;
         GLuint _vertexCoordsVBO;
         GLuint _texCoordsVBO;
@@ -94,6 +95,7 @@ namespace Renderer  {
             glm::mat4 model(1.f);
 
             _shader_prog->setFloat("zLayer", _zLayer);
+            _shader_prog->setFloat("u_alpha", _alpha);
 
             model = glm::translate(model, glm::vec3(_pos, 0.f));
             model = glm::translate(model, glm::vec3(0.5f * _size.x, 0.5f * _size.y, 0.f));
@@ -138,5 +140,15 @@ namespace Renderer  {
         }
 
         float getZLayer() { return _zLayer; };
+
+        void setAlpha(const float alpha) {
+            if (alpha >= 0.f && alpha <= 1.f) {
+                _alpha = alpha;
+            } else {
+                std::cerr << "Alpha must be between 0.f and 1.f" << std::endl;
+            }
+        }
+
+        float getAlpha() { return _alpha; }
     };
 }

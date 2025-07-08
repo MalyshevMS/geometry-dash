@@ -106,6 +106,28 @@ public:
         }
     };
 
+    void set_alpha(int spr_num, float alpha) {
+        if (alpha > 1) {
+            sprites[spr_num]->setAlpha(1);
+        } else if (alpha < 0) {
+            sprites[spr_num]->setAlpha(0);
+        } else {
+            sprites[spr_num]->setAlpha(alpha);
+        }
+    };
+
+    void set_alpha_all(float alpha) {
+        for (int i = 0; i < sprites.size(); i++) {
+            if (alpha > 1) {
+                sprites[i]->setAlpha(1);
+            } else if (alpha < 0) {
+                sprites[i]->setAlpha(0);
+            } else {
+                sprites[i]->setAlpha(alpha);
+            }
+        }
+    }
+
     bool hovered(int spr_num, Cursor& c) {
         if (!sprites[spr_num]->_render) return false;
         if (c.x >= sprites[spr_num]->getPos().x && c.x <= sprites[spr_num]->getPos().x + sprites[spr_num]->getSize().x && \

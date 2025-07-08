@@ -17,6 +17,7 @@ struct Player {
     int jump_speed = 10;
     int jump_height = 160;
     float rotation = 0.f;
+    float alpha = 1.f;
     std::string current_anim = ""; // Player current animation
     Cursor cur = Cursor(); // Player cursor position
     bool noclip = false; // Player no clipping flag

@@ -323,6 +323,11 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
        cout << spikes_collide() << endl;
     }
 
+    if( key == KEY_N && action == GLFW_PRESS){
+        pl.noclip = !pl.noclip;
+        cout << "\r" << "noclip: "<< pl.noclip;
+    }
+
     if (key == KEY_R && action == GLFW_PRESS) {
         reset(false);
     }
@@ -340,6 +345,8 @@ void onceKeyHandler(GLFWwindow* win, int key, int scancode, int action, int mode
     }
 }
 
+
+
 /// @brief Function for proceeding keys pressing. P.S. This function supports long key pressing
 /// @param win GLFW window pointer
 void keyHandler() {
@@ -352,6 +359,20 @@ void keyHandler() {
         if (glfwGetKey(gl.win_main, KEY_MINUS) == GLFW_PRESS) {
             cl.trail_size--;
             cout << "\r" << "trail.size: " << cl.trail_size;
+        }
+    }
+
+    if (glfwGetKey(gl.win_main, KEY_LEFT_CONTROL) == GLFW_PRESS) {
+        if (glfwGetKey(gl.win_main, KEY_EQUAL) == GLFW_PRESS) {
+            if (pl.alpha <= 1.f) pl.alpha += 0.01f;
+            else pl.alpha = 1.f;
+            cout << "\r" << "player.alpha: " << pl.alpha;
+        }
+
+        if (glfwGetKey(gl.win_main, KEY_MINUS) == GLFW_PRESS) {
+            if (pl.alpha >= 0.f) pl.alpha -= 0.01f;
+            else pl.alpha = 0.f;
+            cout << "\r" << "player.alpha: " << pl.alpha;
         }
     }
 
@@ -378,7 +399,7 @@ void calculations() {
         
         fall();
         fix_clipping();
-        if (spikes_collide() || blocks_collide() && !pl.noclip) {
+        if ((spikes_collide() || blocks_collide()) && !pl.noclip) {
             __failed = true;
             break;
         }
@@ -587,6 +608,7 @@ int main(int argc, char const *argv[]) {
             }
 
             check_fail();
+            sg_player.set_alpha_all(pl.alpha);;
             
             if (!cl.show_hitboxes) {
                 sg_blocks_hbox.hide_all();
