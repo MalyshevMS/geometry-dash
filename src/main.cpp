@@ -1,4 +1,9 @@
 #define debug
+#ifdef linux
+#   define _update_delay 10
+#else
+#   define _update_delay 1
+#endif
 
 #include <glad/glad.h> // OpenGL libs
 #include <GLFW/glfw3.h>
@@ -164,7 +169,7 @@ auto find_nearest = [](int x, int y){
 };
 
 void gen_end_level() {
-    int _max;
+    int _max = 0;
     for (auto i : sg_blocks.get_sprites()) {
         if (i->getPos().x > _max) _max = i->getPos().x;
     }
@@ -199,7 +204,7 @@ void reset(bool await = true) {
     {
         lock_guard<mutex> lock(__mtx);
         __stop_flag = true;
-        sleep(10);
+        sleep(_update_delay);
     }
     
     if (__thr_calc.joinable()) __thr_calc.join();
@@ -274,7 +279,7 @@ void jump() {
         cl.is_jumping = true;
         pl.y += pl.jump_speed * (abs(pl.y - (end_point + 31)) / float(pl.jump_height)); // не спрашивай почему тут 31, оно работает, так что не трогай
         pl.rotation += -90.f / 32.f; // не спрашивай почему тут 32.f, оно работает, так что не трогай
-        sleep(1);
+        sleep(10);
     }
     cl.is_jumping = false;
 }
@@ -421,7 +426,7 @@ void calculations() {
         pl.cur.x = __buff_cur_x + cam.x;
         pl.cur.y = gl.win_size.y - __buff_cur_y + cam.y;
 
-        sleep(1);
+        sleep(_update_delay);
     }
 }
 
@@ -581,6 +586,8 @@ int main(int argc, char const *argv[]) {
         sg_player_block_hbox.set_global_zLayer(Layers::hbox_blocks);
         sg_blocks_hbox.set_global_zLayer(Layers::hbox_blocks);
         sg_spikes_hbox.set_global_zLayer(Layers::hbox_spikes);
+
+        sg_ground.set_depth_test(true);
 
         reset(false);
         gen_end_level();

@@ -21,6 +21,7 @@ protected:
     glm::vec2 origin = glm::vec2(0, 0);
     std::chrono::_V2::system_clock::time_point last;
     std::chrono::_V2::system_clock::time_point current;
+    bool use_depth_test = false;
 public:
     SprGroup(ResourceManager* resMan = nullptr) {
         this->resMan = resMan;
@@ -45,6 +46,11 @@ public:
     };
 
     void render_all() {
+        if (use_depth_test) {
+            glEnable(GL_DEPTH_TEST);
+        } else {
+            glDisable(GL_DEPTH_TEST);
+        }
         for (int i = 0; i < this->sprites.size(); i++) {
             this->sprites[i]->render();
         }
@@ -91,6 +97,10 @@ public:
     void show(int spr_num) {
         sprites[spr_num]->_render = true;
     };
+
+    void set_depth_test(bool depth_test) {
+        use_depth_test = depth_test;
+    }
 
     void set_timer() {
         last = std::chrono::high_resolution_clock::now();
