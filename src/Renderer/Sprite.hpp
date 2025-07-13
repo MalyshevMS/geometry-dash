@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <memory>
+#include <vector>
 #include <glm/vec2.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,7 +15,9 @@ namespace Renderer  {
     protected:
         std::shared_ptr<Texture2D> _tex;
         std::shared_ptr<ShaderProgram> _shader_prog;
+        std::vector<int> _groups;
         glm::vec2 _pos, _size;
+        Color _color = Color(1.f);
         float _rotation;
         float _zLayer = 0.f;
         float _alpha = 1.f;
@@ -96,6 +99,7 @@ namespace Renderer  {
 
             _shader_prog->setFloat("zLayer", _zLayer);
             _shader_prog->setFloat("u_alpha", _alpha);
+            _shader_prog->setVec3("spriteColor", _color);
 
             model = glm::translate(model, glm::vec3(_pos, 0.f));
             model = glm::translate(model, glm::vec3(0.5f * _size.x, 0.5f * _size.y, 0.f));
@@ -113,7 +117,7 @@ namespace Renderer  {
             glBindVertexArray(0);
         };
 
-        void move(glm::vec2& xy) {
+        void move(const glm::vec2& xy) {
             setPos(_pos + xy);
         };
 
@@ -150,5 +154,33 @@ namespace Renderer  {
         }
 
         float getAlpha() { return _alpha; }
+
+        void setColor(const Color& color) {
+            if (color.x >= 0.f && color.x <= 1.f && \
+                color.y >= 0.f && color.y <= 1.f && \
+                color.z >= 0.f && color.z <= 1.f) {
+                _color = color;
+            } else {
+                std::cerr << "Color must be between 0.f and 1.f" << std::endl;
+            }
+        }
+
+        Color getColor() { return _color; }
+
+        void addGroup(int group) {
+            for (auto& i : _groups) {
+                if (i == group) return;
+            }
+            _groups.push_back(group);
+        }
+
+        void removeGroup(int group) {
+            for (auto it = _groups.begin(); it != _groups.end(); it++) {
+                if (*it == group) {
+                    _groups.erase(it);
+                    return;
+                }
+            }
+        }
     };
 }

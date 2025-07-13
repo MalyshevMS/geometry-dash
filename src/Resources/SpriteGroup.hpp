@@ -16,6 +16,7 @@ void sleep(unsigned int milliseconds) {
 
 class SprGroup {
 protected:
+    friend class SubGroup;
     ResourceManager* resMan;
     std::vector <std::shared_ptr<Renderer::AnimatedSprite>> sprites;
     glm::vec2 origin = glm::vec2(0, 0);
@@ -182,4 +183,12 @@ public:
     std::vector <std::shared_ptr<Renderer::AnimatedSprite>> get_sprites() {
         return this->sprites;
     };
+
+    std::shared_ptr<Renderer::AnimatedSprite> operator[](int spr_num) {
+        if (spr_num < sprites.size()) {
+            return sprites[spr_num];
+        } else {
+            return nullptr;
+        }
+    }
 };

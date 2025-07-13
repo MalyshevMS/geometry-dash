@@ -2,9 +2,12 @@
 
 #include <glad/glad.h>
 #include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <string>
 #include <iostream>
+
+using Color = glm::vec3;
 
 namespace Renderer {
     class ShaderProgram {
@@ -84,6 +87,10 @@ namespace Renderer {
 
         void setFloat(const std::string& name, const GLfloat value) {
             glUniform1f(glGetUniformLocation(_ID, name.c_str()), value);
+        };
+
+        void setVec3(const std::string& name, const glm::vec3& vector) {
+            glUniform3fv(glGetUniformLocation(_ID, name.c_str()), 1, glm::value_ptr(vector));
         };
 
         void setMat4(const std::string& name, const glm::mat4& matrix) {

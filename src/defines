@@ -1,8 +1,16 @@
 #pragma once
 
+#include "Renderer/ShaderProgram.hpp"
+
 long double operator""b(long double x) {
     return x * 80.f;
 }
+
+#define c_black (Color(0, 0, 0))
+#define c_white (Color(1, 1, 1))
+#define c_red   (Color(1, 0, 0))
+#define c_green (Color(0, 1, 0))
+#define c_blue  (Color(0, 0, 1))
 
 class Layers {
 public:

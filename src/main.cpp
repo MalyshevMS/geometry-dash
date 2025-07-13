@@ -20,6 +20,7 @@
 #include "Resources/TextureLoader.hpp"
 #include "Resources/SpriteGroup.hpp"
 #include "Resources/Parser.hpp"
+#include "Resources/SubGroup.hpp"
 #include "Other/KeyHandler.hpp"
 
 #include "Variables/OpenGL.hpp" // variables
@@ -64,6 +65,8 @@ SprGroup sg_end_level; // Group for level end
 SprGroup sg_ui; // Group for UI
 SprGroup sg_attempt; // Group for attempt text
 SprGroup sg_trail;
+
+Level lvl = Level();
 
 Parser pars_main; // Main parser
 
@@ -591,6 +594,16 @@ int main(int argc, char const *argv[]) {
 
         reset(false);
         gen_end_level();
+
+        lvl[1].add_sprite(sg_blocks[0]);
+        lvl[1].add_sprite(sg_blocks[1]);
+        lvl[1].add_sprite(sg_blocks[2]);
+        lvl[1].setAlpha(0.5f);
+        lvl[1].setColor(c_red);
+        lvl[1].rotate(45.f);
+
+        lvl[2].add_sprite(sg_blocks[3]);
+        lvl[2].setColor(c_blue);
 
         while (!glfwWindowShouldClose(gl.win_main)) { // Main game loop
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
