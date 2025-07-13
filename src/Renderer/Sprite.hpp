@@ -10,12 +10,18 @@
 #include "Texture2D.hpp"
 #include "ShaderProgram.hpp"
 
+#define FLAG_NOCOLOR    0x00000001
+#define FLAG_NOALPHA    0x00000002
+#define FLAG_NOMOVE     0x00000003
+#define FLAG_NOROTATE   0x00000004
+
 namespace Renderer  {
     class Sprite {
     protected:
         std::shared_ptr<Texture2D> _tex;
         std::shared_ptr<ShaderProgram> _shader_prog;
         std::vector<int> _groups;
+        std::vector<std::pair<int, bool>> _flags;
         glm::vec2 _pos, _size;
         Color _color = Color(1.f);
         float _rotation;
@@ -182,5 +188,23 @@ namespace Renderer  {
                 }
             }
         }
+
+            void addFlag(int flag, bool value) {
+                for (auto& i : _flags) {
+                    if (i.first == flag) {
+                        i.second = value;
+                        return;
+                    }
+                }
+                _flags.push_back(std::make_pair(flag, value));
+            }
+
+            bool getFlag(int flag) {
+                if (_flags.size() == 0) return false;
+                for (auto& i : _flags) {
+                    if (i.first == flag) return i.second;
+                }
+                return false;
+            }
     };
 }

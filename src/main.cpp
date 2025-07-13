@@ -525,7 +525,7 @@ int main(int argc, char const *argv[]) {
         sg_end_level = SprGroup(&rm_main);
         sg_attempt = SprGroup(&rm_main);
         sg_ui = SprGroup(&rm_main);
-        pars_main = Parser(&rm_main, &tl_main, &sg_spikes, &sg_spikes_hbox, &sg_blocks, &sg_blocks_hbox, &cl, &gl);
+        pars_main = Parser(&rm_main, &tl_main, &sg_spikes, &sg_spikes_hbox, &sg_blocks, &sg_blocks_hbox, &cl, &gl, &lvl);
         kh_main = KeyHandler(gl.win_main);
 
         // Creating and checking for sprite shader
@@ -595,15 +595,8 @@ int main(int argc, char const *argv[]) {
         reset(false);
         gen_end_level();
 
-        lvl[1].add_sprite(sg_blocks[0]);
-        lvl[1].add_sprite(sg_blocks[1]);
-        lvl[1].add_sprite(sg_blocks[2]);
-        lvl[1].setAlpha(0.5f);
-        lvl[1].setColor(c_red);
-        lvl[1].rotate(45.f);
-
-        lvl[2].add_sprite(sg_blocks[3]);
-        lvl[2].setColor(c_blue);
+        lvl[1].setAlpha(0.2f);
+        lvl[2].rotate(45.f);
 
         while (!glfwWindowShouldClose(gl.win_main)) { // Main game loop
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

@@ -2,31 +2,38 @@
     "level": [
         {
             "type": "block",
-            "x": 2, "y": 1
+            "x": 2, "y": 1,
+            "groups": [1]
         },
         {
             "type": "spike",
-            "x": 3, "y": 2
+            "x": 3, "y": 2,
+            "groups": [1, 2]
         },
         {
             "type": "block",
-            "x": 3, "y": 1
+            "x": 3, "y": 1,
+            "groups": [1]
         },
         {
             "type": "block",
-            "x": 4, "y": 1
+            "x": 4, "y": 1,
+            "groups": []
         },
         {
             "type": "block",
-            "x": 5, "y": 1
+            "x": 5, "y": 1,
+            "groups": []
         },
         {
             "type": "block",
-            "x": 6, "y": 1
+            "x": 6, "y": 1,
+            "groups": []
         },
         {
             "type": "spike",
-            "x": 8, "y": 0
+            "x": 8, "y": 0,
+            "groups": []
         }
     ]
 }

@@ -19,6 +19,7 @@ protected:
     friend class SubGroup;
     ResourceManager* resMan;
     std::vector <std::shared_ptr<Renderer::AnimatedSprite>> sprites;
+    std::vector <std::pair<int, bool>> flags;
     glm::vec2 origin = glm::vec2(0, 0);
     std::chrono::_V2::system_clock::time_point last;
     std::chrono::_V2::system_clock::time_point current;
@@ -35,6 +36,12 @@ public:
         if (sprites.size() == 0) origin = glm::vec2(pos_x, pos_y);
 
         sprites.push_back(new_spr);
+
+        for (auto& i : flags) {
+            if (i.second) {
+                sprites[sprites.size() - 1]->addFlag(i.first, i.second);
+            }
+        }
     };
 
     void add_text(const std::string& atlas, const std::string& text, const std::string& shader, const int& width, const int& height, const float& rotation, const int& pos_x, const int& pos_y) {
@@ -137,6 +144,24 @@ public:
                 sprites[i]->setAlpha(alpha);
             }
         }
+    }
+
+    void set_flag(int spr_num, int flag, bool value) {
+        sprites[spr_num]->addFlag(flag, value);
+    }
+
+    void set_flag_all(int flag, bool value) {
+        for (int i = 0; i < sprites.size(); i++) {
+            set_flag(i, flag, value);
+        }
+
+        for (auto& i : flags) {
+            if (i.first == flag) {
+                i.second = value;
+                return;
+            }
+        }
+        flags.push_back(std::make_pair(flag, value));
     }
 
     bool hovered(int spr_num, Cursor& c) {

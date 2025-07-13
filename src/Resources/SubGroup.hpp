@@ -1,3 +1,5 @@
+#pragma once
+
 #include "SpriteGroup.hpp"
 
 class Level;
@@ -17,24 +19,28 @@ public:
 
     void setAlpha(float alpha) {
         for (auto& spr : sprites) {
+            if(spr->getFlag(FLAG_NOALPHA)) continue;
             spr->setAlpha(alpha);
         }
     }
 
     void setColor(const Color& color) {
         for (auto& spr : sprites) {
+            if(spr->getFlag(FLAG_NOCOLOR)) continue;
             spr->setColor(color);
         }
     }
 
     void move(int x, int y) {
         for (auto& spr : sprites) {
+            if(spr->getFlag(FLAG_NOMOVE)) continue;
             spr->move(glm::vec2(x, y));
         }
     }
 
     void rotate(float rot) {
         for (auto& spr : sprites) {
+            if(spr->getFlag(FLAG_NOROTATE)) continue;
             spr->setRotation(rot);
         }
     }
