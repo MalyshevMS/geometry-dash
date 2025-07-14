@@ -14,6 +14,8 @@ add_executable(${project_name_}
     src/Renderer/AnimatedSprite.hpp
     src/Resources/Parser.hpp
     src/Other/KeyHandler.hpp
+    src/Other/Triggers/Triggers.hpp
+    src/Other/Triggers/Trigger.hpp
 )
 
 target_compile_features(${project_name_} PUBLIC cxx_std_17)

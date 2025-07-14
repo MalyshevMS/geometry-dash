@@ -4,17 +4,51 @@
 
 class Level;
 
+struct SpriteState {
+    float alpha;
+    Color color;
+    glm::vec2 pos;
+    float rotation;
+    SpriteState(float alpha, Color color, glm::vec2 pos, float rotation) {
+        this->alpha = alpha;
+        this->color = color;
+        this->pos = pos;
+        this->rotation = rotation;
+    }
+};
+
 class SubGroup {
 protected:
     int id;
+    bool locked = false;
     std::vector<std::shared_ptr<Renderer::AnimatedSprite>> sprites;
+    std::vector<SpriteState> default_states;
 public:
     friend class Level;
     SubGroup(int id) : id(id) {};
 
     void add_sprite(std::shared_ptr<Renderer::AnimatedSprite> spr) {
-        sprites.push_back(spr);
-        spr->addGroup(id);
+        if (!locked) {
+            sprites.push_back(spr);
+            spr->addGroup(id);
+        }
+    }
+
+    void lock() {
+        for (int i = 0; i < sprites.size(); i++) {
+            auto spr = sprites[i];
+            default_states.push_back(SpriteState(spr->getAlpha(), spr->getColor(), spr->getPos(), spr->getRotation()));
+        }
+        locked = true;
+    }
+
+    void reset() { // В тихом омуте черти водятся
+        for (int i = 0; i < default_states.size(); i++) {
+            sprites[i]->setAlpha    (default_states[i].alpha      );
+            sprites[i]->setColor    (default_states[i].color      );
+            sprites[i]->setPos      (default_states[i].pos        );
+            sprites[i]->setRotation (default_states[i].rotation   );
+        }
     }
 
     void setAlpha(float alpha) {
@@ -70,5 +104,13 @@ public:
 
     SubGroup& operator[](const int& id) {
         return group(std::move(id));
+    }
+
+    std::vector<int> group_list() {
+        std::vector<int> result;
+        for (auto i : groups) {
+            result.push_back(i.id);
+        }
+        return result;
     }
 };

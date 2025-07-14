@@ -22,6 +22,8 @@
 #include "Resources/Parser.hpp"
 #include "Resources/SubGroup.hpp"
 #include "Other/KeyHandler.hpp"
+#include "Other/Triggers/Trigger.hpp"
+#include "Other/Triggers/Triggers.hpp"
 
 #include "Variables/OpenGL.hpp" // variables
 #include "Variables/Camera.hpp"
@@ -219,6 +221,8 @@ void reset(bool await = true) {
     sg_ground.delete_all();
     sg_attempt.delete_all();
     spawn_ground();
+    if (lvl.group_list().size() > 0)
+    for (auto i : lvl.group_list()) lvl[i].reset();
     sg_attempt.add_text("Font", string("attempt ") + to_string(cl.attempt), gl.sprite_shader, gl.font_width, gl.font_height, 0.f, 1.b, 1.5b);
     
     __stop_flag = false;
@@ -595,8 +599,15 @@ int main(int argc, char const *argv[]) {
         reset(false);
         gen_end_level();
 
-        lvl[1].setAlpha(0.2f);
-        lvl[2].rotate(45.f);
+        lvl.add_group(1);
+        Triggers::Alpha trig1(1, 0.5f, 4.b, 1.b, &lvl);
+        Triggers::Rotate trig2(1, 45.f, 4.b, 1.b, &lvl);
+
+        if (lvl.group_list().size() > 0) {
+            for (auto i : lvl.group_list()) {
+                lvl[i].lock();
+            }
+        }
 
         while (!glfwWindowShouldClose(gl.win_main)) { // Main game loop
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -621,7 +632,9 @@ int main(int argc, char const *argv[]) {
             }
 
             check_fail();
-            sg_player.set_alpha_all(pl.alpha);;
+            trig1.update(pl);
+            trig2.update(pl);
+            sg_player.set_alpha_all(pl.alpha);
             
             if (!cl.show_hitboxes) {
                 sg_blocks_hbox.hide_all();

@@ -189,22 +189,22 @@ namespace Renderer  {
             }
         }
 
-            void addFlag(int flag, bool value) {
-                for (auto& i : _flags) {
-                    if (i.first == flag) {
-                        i.second = value;
-                        return;
-                    }
+        void addFlag(int flag, bool value) {
+            for (auto& i : _flags) {
+                if (i.first == flag) {
+                    i.second = value;
+                    return;
                 }
-                _flags.push_back(std::make_pair(flag, value));
             }
+            _flags.push_back(std::make_pair(flag, value));
+        }
 
-            bool getFlag(int flag) {
-                if (_flags.size() == 0) return false;
-                for (auto& i : _flags) {
-                    if (i.first == flag) return i.second;
-                }
-                return false;
+        bool getFlag(int flag) {
+            if (_flags.size() == 0) return false;
+            for (auto& i : _flags) {
+                if (i.first == flag) return i.second;
             }
+            return false;
+        }
     };
 }
