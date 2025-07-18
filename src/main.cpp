@@ -602,6 +602,7 @@ int main(int argc, char const *argv[]) {
         lvl.add_group(1);
         Triggers::Alpha trig1(1, 0.5f, 4.b, 1.b, &lvl);
         Triggers::Rotate trig2(1, 45.f, 4.b, 1.b, &lvl);
+        Triggers::Move trig3(1, 0.b, 1.b, 4.b, 1.b, &lvl);
 
         if (lvl.group_list().size() > 0) {
             for (auto i : lvl.group_list()) {
@@ -634,6 +635,7 @@ int main(int argc, char const *argv[]) {
             check_fail();
             trig1.update(pl);
             trig2.update(pl);
+            trig3.update(pl);
             sg_player.set_alpha_all(pl.alpha);
             
             if (!cl.show_hitboxes) {

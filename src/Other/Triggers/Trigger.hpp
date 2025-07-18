@@ -8,6 +8,7 @@ class Trigger {
 protected:
     int x, y;
     bool spawn, touch;
+    bool activated = false;
     bool multi;
     std::vector<int> groups;
     Level* lvl;
@@ -19,12 +20,12 @@ public:
     };
 
     virtual void action() {
-
+        activated = true;
     }
 
     virtual void update(Player& pl) {
         if (!spawn) {
-            if (pl.x >= x) {
+            if (pl.x >= x && !activated) {
                 action();
             }
         }

@@ -37,6 +37,7 @@ namespace Triggers {
                                                                 target(target), diff_x(diff_x), diff_y(diff_y) {};
         void action() override {
             lvl->group(target).move(diff_x, diff_y);
+            Trigger::action();
         }
     };
 
@@ -49,6 +50,7 @@ namespace Triggers {
                                                                      target(target), rotation(rotation) {};
         void action() override {
             lvl->group(target).rotate(rotation);
+            Trigger::action();
         }
     };
 };
